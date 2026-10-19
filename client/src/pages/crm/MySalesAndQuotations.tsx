@@ -14,10 +14,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, ShoppingCart, DollarSign, TrendingUp, 
-  Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package,
+  Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package, Pencil,
   Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash, Send
 } from "lucide-react";
 import { format } from "date-fns";
+import QuotationForm from "@/components/QuotationForm";
+import type { Inquiry } from "@shared/schema";
 
 interface SalesMetrics {
   weekly: {
@@ -38,6 +40,7 @@ interface SalesMetrics {
 interface Quotation {
   id: number;
   quotationId: string;
+  inquiryId?: number | null;
   customerId: string | null;
   customerCompanyName: string | null;
   totalAmount: string | null;
@@ -82,6 +85,7 @@ export default function MySalesAndQuotations() {
   const [showQuotationActivity, setShowQuotationActivity] = useState(false);
   const [showSalesOrderActivity, setShowSalesOrderActivity] = useState(false);
   const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
+  const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
 
   const publishQuotationMutation = useMutation({
     mutationFn: async (quotationId: number) => {
@@ -469,6 +473,17 @@ export default function MySalesAndQuotations() {
                                       ? "Download Draft PDF"
                                       : "Download PDF"}
                                 </Button>
+                                {quotation.status === "draft" && quotation.inquiryId && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditingQuotationId(quotation.id)}
+                                    data-testid={`button-edit-quotation-${quotation.id}`}
+                                  >
+                                    <Pencil className="mr-1 h-4 w-4" />
+                                    Edit Quote
+                                  </Button>
+                                )}
                                 {quotation.status === "draft" && (
                                   <Button
                                     variant="outline"
@@ -591,6 +606,12 @@ export default function MySalesAndQuotations() {
         onClose={() => setShowQuotationDetail(false)}
       />
 
+      <QuotationEditDialog
+        quotationId={editingQuotationId}
+        open={editingQuotationId !== null}
+        onClose={() => setEditingQuotationId(null)}
+      />
+
       <SalesOrderDetailDialog
         salesOrder={selectedSalesOrder}
         open={showSalesOrderDetail}
@@ -609,6 +630,87 @@ export default function MySalesAndQuotations() {
         onClose={() => setShowSalesOrderActivity(false)}
       />
     </SalesLayout>
+  );
+}
+
+export function QuotationEditDialog({
+  quotationId,
+  open,
+  onClose
+}: {
+  quotationId: number | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: quotation, isLoading, isError } = useQuery({
+    queryKey: ["/api/quotations", quotationId],
+    enabled: open && quotationId !== null,
+    queryFn: async () => {
+      const response = await fetch(`/api/quotations/${quotationId}`, { credentials: "include" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Failed to load quotation");
+      return result;
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch(`/api/quotations/${quotationId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Failed to save quotation changes");
+      return result;
+    },
+    onSuccess: (updatedQuotation) => {
+      toast({
+        title: "Draft updated",
+        description: `${updatedQuotation.quotationId} has been saved. Download its PDF to review the latest version.`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-metrics"] });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not update quotation", description: error.message, variant: "destructive" });
+    }
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            Edit Draft Quotation{quotation?.quotationId ? ` — ${quotation.quotationId}` : ""}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+          </div>
+        ) : isError ? (
+          <p className="py-6 text-sm text-destructive">Could not load this quotation. Close the dialog and try again.</p>
+        ) : quotation?.inquiry ? (
+          <QuotationForm
+            key={quotationId}
+            inquiry={quotation.inquiry as Inquiry}
+            initialQuotation={quotation}
+            isEditing
+            onSubmit={(data) => updateMutation.mutate(data)}
+            isLoading={updateMutation.isPending}
+          />
+        ) : (
+          <p className="py-6 text-sm text-muted-foreground">
+            This quotation is not linked to a product enquiry, so it cannot be edited from this screen.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -408,6 +408,7 @@ export interface IStorage {
     createdBy?: string;
     inquiryId?: number;
     leadId?: number;
+    assignedTo?: string;
     status?: string;
     statuses?: string[];
     startDate?: Date;
@@ -3331,6 +3332,10 @@ export class DatabaseStorage implements IStorage {
     if (filters?.leadId) {
       conditions.push(eq(quotations.leadId, filters.leadId));
     }
+
+    if (filters?.assignedTo) {
+      conditions.push(eq(inquiries.assignedTo, filters.assignedTo));
+    }
     
     if (filters?.status) {
       conditions.push(eq(quotations.status, filters.status));
@@ -3410,6 +3415,7 @@ export class DatabaseStorage implements IStorage {
       db
         .select({ count: count() })
         .from(quotations)
+        .leftJoin(inquiries, eq(quotations.inquiryId, inquiries.id))
         .where(whereClause),
     ]);
 

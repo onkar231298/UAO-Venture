@@ -153,6 +153,20 @@ import {
 import { registerChatRoutes } from "./chatRoutes";
 import { createPortalAppearanceHandlers } from "./portalAppearance";
 
+async function canManageQuotation(
+  userId: string,
+  role: string | undefined,
+  quotation: { inquiryId?: number | null; createdBy?: string | null }
+): Promise<boolean> {
+  if (role === "admin" || role === "super_admin") return true;
+  if (!role?.includes("sales")) return false;
+  if (quotation.inquiryId) {
+    const inquiry = await storage.getInquiry(quotation.inquiryId);
+    return inquiry?.assignedTo === userId;
+  }
+  return quotation.createdBy === userId;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const portalAppearanceHandlers = createPortalAppearanceHandlers({
     getUserById: (userId) => storage.getUser(userId),
@@ -2781,13 +2795,65 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
 
       const inquiryId = parseInt(req.params.id);
+      const currentInquiry = await storage.getInquiry(inquiryId);
+      if (!currentInquiry) return res.status(404).json({ message: "Inquiry not found" });
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin && currentInquiry.assignedTo !== userId) {
+        return res.status(403).json({ message: "You can only update enquiries assigned to you" });
+      }
       const updateData = req.body;
+      if (!isAdmin && Object.prototype.hasOwnProperty.call(updateData, "assignedTo")) {
+        return res.status(403).json({ message: "Only admins can reassign enquiries" });
+      }
       
       const inquiry = await storage.updateInquiry(inquiryId, updateData);
       res.json(inquiry);
     } catch (error) {
       console.error("Error updating inquiry:", error);
       res.status(500).json({ message: "Failed to update inquiry" });
+    }
+  });
+
+  app.patch('/api/inquiries/:id/assign', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+        return res.status(403).json({ message: "Only admins can assign enquiries" });
+      }
+
+      const inquiryId = Number(req.params.id);
+      if (!Number.isInteger(inquiryId) || inquiryId <= 0) {
+        return res.status(400).json({ message: "Invalid enquiry ID" });
+      }
+
+      const inquiry = await storage.getInquiry(inquiryId);
+      if (!inquiry) return res.status(404).json({ message: "Enquiry not found" });
+
+      const assignedTo = req.body.assignedTo === "unassigned" ? null : req.body.assignedTo;
+      if (assignedTo !== null && (typeof assignedTo !== "string" || !assignedTo.trim())) {
+        return res.status(400).json({ message: "Choose a sales representative or clear the assignment" });
+      }
+      if (assignedTo) {
+        const assignee = await storage.getUser(assignedTo);
+        if (
+          !assignee ||
+          !["sales_executive", "sales_manager"].includes(assignee.role) ||
+          assignee.isActive === false ||
+          assignee.accountStatus !== "active"
+        ) {
+          return res.status(400).json({ message: "The selected user is not an active sales representative" });
+        }
+      }
+
+      const [updatedInquiry] = await db.update(inquiries)
+        .set({ assignedTo, updatedAt: new Date() })
+        .where(eq(inquiries.id, inquiryId))
+        .returning();
+      return res.json(updatedInquiry);
+    } catch (error) {
+      console.error("Error assigning enquiry:", error);
+      return res.status(500).json({ message: "Failed to assign enquiry" });
     }
   });
 
@@ -3545,8 +3611,11 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // Role-based filtering
       if (user.role === 'customer') {
         filters.customerId = userId;
-      } else if (myOnly === 'true' || (user.role?.includes('sales') && !user.role?.includes('admin'))) {
-        // Sales agents see only their own quotations, or admin can filter to their own with myOnly=true
+      } else if (user.role?.includes('sales') && !user.role?.includes('admin')) {
+        // Sales staff see quotations linked to enquiries assigned to them.
+        filters.assignedTo = userId;
+      } else if (myOnly === 'true') {
+        // Admin users can optionally filter to quotations they created.
         filters.createdBy = userId;
       }
 
@@ -3584,6 +3653,122 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       res.status(500).json({ message: "Failed to fetch quotations" });
     }
   });
+
+  app.get('/api/quotations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const quotationId = Number(req.params.id);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation ID" });
+      }
+      const quotation = await storage.getQuotation(quotationId);
+      if (!quotation) return res.status(404).json({ message: "Quotation not found" });
+      if (!user || !(await canManageQuotation(userId, user.role, quotation))) {
+        return res.status(403).json({ message: "You can only view quotations for enquiries assigned to you" });
+      }
+
+      const items = await db.select({
+        id: quotationItems.id,
+        productId: quotationItems.productId,
+        productName: products.name,
+        quantity: quotationItems.quantity,
+        unit: quotationItems.unit,
+        unitPrice: quotationItems.unitPrice,
+        totalPrice: quotationItems.totalPrice,
+        specifications: quotationItems.specifications
+      })
+        .from(quotationItems)
+        .leftJoin(products, eq(quotationItems.productId, products.id))
+        .where(eq(quotationItems.quotationId, quotationId));
+
+      let inquiry: any = null;
+      if (quotation.inquiryId) {
+        const inquiryRecord = await storage.getInquiry(quotation.inquiryId);
+        if (inquiryRecord) {
+          const product = inquiryRecord.productId ? await storage.getProduct(inquiryRecord.productId) : undefined;
+          inquiry = { ...inquiryRecord, productName: product?.name || null };
+        }
+      }
+
+      return res.json({ ...quotation, items, inquiry });
+    } catch (error) {
+      console.error("Error fetching quotation details:", error);
+      return res.status(500).json({ message: "Failed to fetch quotation details" });
+    }
+  });
+
+  app.put('/api/quotations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const quotationId = Number(req.params.id);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation ID" });
+      }
+      const currentQuotation = await storage.getQuotation(quotationId);
+      if (!currentQuotation) return res.status(404).json({ message: "Quotation not found" });
+      if (!user || !(await canManageQuotation(userId, user.role, currentQuotation))) {
+        return res.status(403).json({ message: "You can only edit quotations for enquiries assigned to you" });
+      }
+      if (currentQuotation.status !== "draft") {
+        return res.status(409).json({ message: "Only draft quotations can be edited. Use the revision flow after sending." });
+      }
+      if (!Array.isArray(req.body.items) || req.body.items.length === 0) {
+        return res.status(400).json({ message: "At least one quotation line item is required" });
+      }
+
+      const validUntil = typeof req.body.validUntil === "string"
+        ? new Date(req.body.validUntil)
+        : req.body.validUntil;
+      const editableQuotationData = insertQuotationSchema.partial().parse({
+        validUntil,
+        totalAmount: req.body.totalAmount,
+        subtotal: req.body.subtotal,
+        discountPercent: req.body.discountPercent,
+        discountAmount: req.body.discountAmount,
+        currency: req.body.currency,
+        priceType: req.body.priceType,
+        terms: req.body.terms,
+        notes: req.body.notes,
+        includeGst: req.body.includeGst,
+        gstNumber: req.body.gstNumber,
+        gstPercentage: req.body.gstPercentage,
+        gstAmount: req.body.gstAmount
+      });
+
+      const updatedQuotation = await db.transaction(async (tx) => {
+        const [updated] = await tx.update(quotations)
+          .set({ ...editableQuotationData, updatedAt: new Date() })
+          .where(and(eq(quotations.id, quotationId), eq(quotations.status, "draft")))
+          .returning();
+        if (!updated) return null;
+
+        await tx.delete(quotationItems).where(eq(quotationItems.quotationId, quotationId));
+        await tx.insert(quotationItems).values(req.body.items.map((item: any) => ({
+          quotationId,
+          productId: item.productId && Number(item.productId) > 0 ? Number(item.productId) : null,
+          quantity: item.quantity === "" || item.quantity == null ? null : String(item.quantity),
+          unit: item.unit || null,
+          unitPrice: item.unitPrice === "" || item.unitPrice == null ? null : String(item.unitPrice),
+          totalPrice: item.totalPrice === "" || item.totalPrice == null ? null : String(item.totalPrice),
+          specifications: item.specifications || null
+        })));
+        return updated;
+      });
+
+      if (!updatedQuotation) {
+        return res.status(409).json({ message: "This quotation is no longer a draft" });
+      }
+      return res.json(updatedQuotation);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid quotation data", errors: error.errors });
+      }
+      console.error("Error updating quotation:", error);
+      return res.status(500).json({ message: "Failed to update quotation" });
+    }
+  });
   
   // Get sales metrics for dashboard (weekly stats, totals)
   app.get('/api/sales-metrics', isAuthenticated, async (req: any, res) => {
@@ -3610,7 +3795,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const soFilters: any = { startDate: weekStart };
       
       if (!isAdmin) {
-        quotationFilters.createdBy = userId;
+        quotationFilters.assignedTo = userId;
         soFilters.assignedToUserId = userId;
       }
       
@@ -3638,7 +3823,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       const allSoFilters: any = { limit: 10000 };
       
       if (!isAdmin) {
-        allQuotationFilters.createdBy = userId;
+        allQuotationFilters.assignedTo = userId;
         allSoFilters.assignedToUserId = userId;
       }
       
@@ -3716,6 +3901,14 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       // The inquiry is the source of truth for the customer account. Never trust
       // a customer ID supplied by the browser when publishing a quotation.
       const customerId = relatedInquiry?.customerId || null;
+      if (
+        relatedInquiry &&
+        user.role?.includes("sales") &&
+        !user.role?.includes("admin") &&
+        relatedInquiry.assignedTo !== userId
+      ) {
+        return res.status(403).json({ message: "You can only create quotations for enquiries assigned to you" });
+      }
       if (req.body.status === "sent" && !customerId) {
         return res.status(400).json({
           message: "This inquiry is not linked to a customer login, so it cannot be published to the customer dashboard."
@@ -3797,6 +3990,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       const quotation = await storage.getQuotation(quotationId);
       if (!quotation) return res.status(404).json({ message: "Quotation not found" });
+      if (!(await canManageQuotation(userId, user.role, quotation))) {
+        return res.status(403).json({ message: "You can only publish quotations for enquiries assigned to you" });
+      }
       if (quotation.status === "sent") return res.json(quotation);
       if (quotation.status !== "draft") {
         return res.status(409).json({ message: "Only draft quotations can be published to a customer" });
@@ -3862,9 +4058,19 @@ If you didn't request a password reset, you can safely ignore this email. Your p
   });
 
   // Get quotations for a specific inquiry
-  app.get('/api/inquiries/:id/quotations', async (req: any, res) => {
+  app.get('/api/inquiries/:id/quotations', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
       const inquiryId = parseInt(req.params.id);
+      const inquiry = await storage.getInquiry(inquiryId);
+      if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
+      if (
+        !user ||
+        ((user.role !== "admin" && user.role !== "super_admin") && inquiry.assignedTo !== userId)
+      ) {
+        return res.status(403).json({ message: "You can only view quotations for enquiries assigned to you" });
+      }
       
       const result = await storage.getQuotations({
         inquiryId,
@@ -3940,6 +4146,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
+      }
+      if (!(await canManageQuotation(userId, user.role, quotation))) {
+        return res.status(403).json({ message: "You can only convert quotations for enquiries assigned to you" });
       }
 
       if (quotation.status !== 'accepted') {
@@ -4117,6 +4326,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(400).json({ message: "New price is required" });
       }
 
+      const currentQuotation = await storage.getQuotation(quotationId);
+      if (!currentQuotation) return res.status(404).json({ message: "Quotation not found" });
+      if (!(await canManageQuotation(userId, user.role, currentQuotation))) {
+        return res.status(403).json({ message: "You can only revise quotations for enquiries assigned to you" });
+      }
+
       const quotation = await storage.reviseQuotation(quotationId, userId, newPrice, notes || '');
       res.json(quotation);
     } catch (error: any) {
@@ -4137,6 +4352,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       const inquiryId = parseInt(req.params.id);
       const { approvalNotes } = req.body;
+      const inquiryToApprove = await storage.getInquiry(inquiryId);
+      if (!inquiryToApprove) return res.status(404).json({ message: "Inquiry not found" });
+      if (
+        user.role !== "admin" &&
+        user.role !== "super_admin" &&
+        inquiryToApprove.assignedTo !== userId
+      ) {
+        return res.status(403).json({ message: "You can only approve enquiries assigned to you" });
+      }
 
       const inquiry = await storage.approveHighVolumeBid(inquiryId, userId, approvalNotes || '');
       res.json(inquiry);
@@ -4158,6 +4382,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
       const inquiryId = parseInt(req.params.id);
       const { notes, revisedPrice, currency } = req.body;
+      const inquiryToUpdate = await storage.getInquiry(inquiryId);
+      if (!inquiryToUpdate) return res.status(404).json({ message: "Inquiry not found" });
+      if (
+        user.role !== "admin" &&
+        user.role !== "super_admin" &&
+        inquiryToUpdate.assignedTo !== userId
+      ) {
+        return res.status(403).json({ message: "You can only update enquiries assigned to you" });
+      }
 
       if (notes === undefined) {
         return res.status(400).json({ message: "Discussion notes are required" });
@@ -4193,7 +4426,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
       }
-      if (sessionUser.isStaff !== true) {
+      if (sessionUser.isStaff === true) {
+        const staffUser = await storage.getUser(sessionUser.claims?.sub);
+        if (!staffUser || !(await canManageQuotation(sessionUser.claims.sub, staffUser.role, quotation))) {
+          return res.status(403).json({ message: "You can only download quotations for enquiries assigned to you" });
+        }
+      } else {
         const customerId = sessionUser.claims?.sub;
         const relatedInquiry = quotation.inquiryId
           ? await storage.getInquiry(quotation.inquiryId)
@@ -7275,7 +7513,17 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 
   app.get('/api/users/sales-reps', isAuthenticated, async (req: any, res) => {
     try {
-      const salesReps = await storage.getSalesReps();
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+        return res.status(403).json({ message: "Only admins can view sales representatives for assignment" });
+      }
+      const salesReps = (await storage.getSalesReps())
+        .filter(rep =>
+          ["sales_executive", "sales_manager"].includes(rep.role) &&
+          rep.isActive !== false &&
+          rep.accountStatus === "active"
+        )
+        .map(({ id, firstName, lastName, email, role }) => ({ id, firstName, lastName, email, role }));
       res.json(salesReps);
     } catch (error) {
       console.error('Error fetching sales reps:', error);

@@ -13,6 +13,8 @@ interface QuotationFormProps {
   inquiry: Inquiry & { productName?: string };
   onSubmit: (data: any) => void;
   isLoading: boolean;
+  initialQuotation?: any;
+  isEditing?: boolean;
 }
 
 interface QuotationItem {
@@ -25,38 +27,61 @@ interface QuotationItem {
   specifications: string;
 }
 
-export default function QuotationForm({ inquiry, onSubmit, isLoading }: QuotationFormProps) {
-  const [formData, setFormData] = useState({
-    inquiryId: inquiry.id,
-    customerId: inquiry.customerId,
-    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-    status: "draft",
-    currency: "USD",
-    priceType: "ex_warehouse",
-    terms: `Payment Terms: 30 days net
+export default function QuotationForm({
+  inquiry,
+  onSubmit,
+  isLoading,
+  initialQuotation,
+  isEditing = false
+}: QuotationFormProps) {
+  const [formData, setFormData] = useState(() => ({
+    inquiryId: initialQuotation?.inquiryId ?? inquiry.id,
+    customerId: initialQuotation?.customerId ?? inquiry.customerId,
+    validUntil: initialQuotation?.validUntil
+      ? new Date(initialQuotation.validUntil).toISOString().split('T')[0]
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    status: isEditing ? "draft" : (initialQuotation?.status || "draft"),
+    currency: initialQuotation?.currency || "USD",
+    priceType: initialQuotation?.priceType || "ex_warehouse",
+    terms: initialQuotation?.terms || `Payment Terms: 30 days net
 Delivery: Ex-works
 Validity: 30 days from quotation date
 Quality: As per specifications
 Packaging: Standard export packaging`,
-    notes: "",
-    // GST fields
-    includeGst: false,
-    gstNumber: "",
-    gstPercentage: "18.00", // Default GST rate
-    discountPercent: "0.00"
-  });
+    notes: initialQuotation?.notes || "",
+    includeGst: initialQuotation?.includeGst ?? false,
+    gstNumber: initialQuotation?.gstNumber || "",
+    gstPercentage: initialQuotation?.gstPercentage?.toString() || "18.00",
+    discountPercent: initialQuotation?.discountPercent?.toString() || "0.00"
+  }));
 
-  const [items, setItems] = useState<QuotationItem[]>([
-    {
+  const [items, setItems] = useState<QuotationItem[]>(() => {
+    if (Array.isArray(initialQuotation?.items) && initialQuotation.items.length > 0) {
+      return initialQuotation.items.map((item: any) => {
+        const quantity = item.quantity?.toString() || "";
+        const unitPrice = item.unitPrice?.toString() || "";
+        return {
+          productId: Number(item.productId) || inquiry.productId || 0,
+          productName: item.productName || inquiry.productName || "Product",
+          quantity,
+          unit: item.unit || inquiry.unit || "kg",
+          unitPrice,
+          totalPrice: Number(item.totalPrice) ||
+            (Number.parseFloat(quantity) || 0) * (Number.parseFloat(unitPrice) || 0),
+          specifications: item.specifications || ""
+        };
+      });
+    }
+    return [{
       productId: inquiry.productId || 0,
-      productName: (inquiry as any).productName || "Product",
+      productName: inquiry.productName || "Product",
       quantity: inquiry.quantity?.toString() || "0",
       unit: inquiry.unit || "kg",
       unitPrice: "",
       totalPrice: 0,
       specifications: ""
-    }
-  ]);
+    }];
+  });
 
   const calculateItemTotal = (quantity: string, unitPrice: string): number => {
     const qty = parseFloat(quantity) || 0;
@@ -192,7 +217,7 @@ Packaging: Standard export packaging`,
             <CardTitle className="text-lg">Quotation Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 ${isEditing ? "" : "sm:grid-cols-2"} gap-4`}>
               <div>
                 <Label htmlFor="validUntil">Valid Until</Label>
                 <Input
@@ -204,7 +229,7 @@ Packaging: Standard export packaging`,
                   className="min-h-[44px]"
                 />
               </div>
-              <div>
+              {!isEditing && <div>
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                   <SelectTrigger className="min-h-[44px]">
@@ -215,7 +240,7 @@ Packaging: Standard export packaging`,
                     <SelectItem value="sent">Send to Customer</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div>}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -490,19 +515,21 @@ Packaging: Standard export packaging`,
         {/* Submit */}
         <div className="flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white pt-4 border-t">
           <p className="text-xs text-gray-500 sm:mr-auto sm:max-w-md">
-            Drafts stay private and can be downloaded for review from My Sales & Quotations. Sending publishes to the customer dashboard; email delivery will be added later.
+            {isEditing
+              ? "Saving changes keeps this quotation as a private draft."
+              : "Drafts stay private and can be downloaded for review from My Sales & Quotations. Sending publishes to the customer dashboard; email delivery will be added later."}
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-[44px]"
-            disabled={isLoading}
-            onClick={() => submitQuotation("draft")}
-          >
-            {isLoading ? "Saving draft..." : "Save as Draft"}
-          </Button>
+          {!isEditing && <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px]"
+              disabled={isLoading}
+              onClick={() => submitQuotation("draft")}
+            >
+              {isLoading ? "Saving draft..." : "Save as Draft"}
+            </Button>}
           <Button type="submit" disabled={isLoading} className="min-h-[44px]">
-            {isLoading ? "Saving..." : formData.status === "sent" ? "Send to Customer Dashboard" : "Create Quotation"}
+            {isLoading ? "Saving..." : isEditing ? "Save Changes" : formData.status === "sent" ? "Send to Customer Dashboard" : "Create Quotation"}
           </Button>
         </div>
       </form>

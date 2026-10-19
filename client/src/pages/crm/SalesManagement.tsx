@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send, Download } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
@@ -21,6 +21,7 @@ import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
 import LeadManagement from "./LeadManagement";
 import CompanyManagement from "./CompanyManagement";
 import DuplicateReview from "./DuplicateReview";
+import { QuotationEditDialog } from "./MySalesAndQuotations";
 
 export default function SalesManagement({ activeSubSection }: { activeSubSection?: string } = {}) {
   const { user, isLoading: authLoading } = useAuth();
@@ -39,11 +40,25 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [inquiryToConvert, setInquiryToConvert] = useState<Inquiry | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [quoteDialogInquiryId, setQuoteDialogInquiryId] = useState<number | null>(null);
+  const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
+  const [downloadingInquiryQuotationId, setDownloadingInquiryQuotationId] = useState<number | null>(null);
+  const canAssignInquiries = user?.role === "admin" || user?.role === "super_admin";
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
     queryKey: ['/api/inquiries'],
     enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
+  });
+
+  const { data: salesReps = [] } = useQuery({
+    queryKey: ['/api/users/sales-reps'],
+    enabled: !authLoading && canAssignInquiries,
+    queryFn: async () => {
+      const response = await fetch('/api/users/sales-reps', { credentials: 'include' });
+      const result = await response.json().catch(() => []);
+      if (!response.ok) throw new Error(result.message || 'Failed to load sales representatives');
+      return result;
+    }
   });
 
   const { data: quotations } = useQuery({
@@ -95,6 +110,33 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
         description: error.message,
         variant: "destructive"
       });
+    }
+  });
+
+  const assignInquiryMutation = useMutation({
+    mutationFn: async ({ inquiryId, assignedTo }: { inquiryId: number; assignedTo: string | null }) => {
+      const response = await fetch(`/api/inquiries/${inquiryId}/assign`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Failed to assign enquiry');
+      return result;
+    },
+    onSuccess: (updatedInquiry) => {
+      const representative = salesReps.find((rep: any) => rep.id === updatedInquiry.assignedTo);
+      toast({
+        title: updatedInquiry.assignedTo ? 'Enquiry assigned' : 'Enquiry unassigned',
+        description: updatedInquiry.assignedTo
+          ? `INQ-${updatedInquiry.id} is assigned to ${representative ? `${representative.firstName} ${representative.lastName}`.trim() : 'the selected sales representative'}.`
+          : `INQ-${updatedInquiry.id} is no longer assigned to a sales representative.`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Could not assign enquiry', description: error.message, variant: 'destructive' });
     }
   });
 
@@ -250,6 +292,42 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
         return <Badge className="bg-red-100 text-red-800">Closed</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>;
+    }
+  };
+
+  const getLatestQuotationForInquiry = (inquiryId: number) => {
+    const list = (quotations as any)?.quotations || [];
+    return list
+      .filter((quotation: any) => Number(quotation.inquiryId) === inquiryId)
+      .sort((a: any, b: any) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      )[0];
+  };
+
+  const downloadInquiryQuotationPdf = async (quotationId: number) => {
+    setDownloadingInquiryQuotationId(quotationId);
+    try {
+      const response = await fetch(`/api/quotations/${quotationId}/pdf`, { credentials: "include" });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Could not download the quotation PDF");
+      }
+      const url = window.URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `quotation-${quotationId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast({
+        title: "Could not download quotation PDF",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setDownloadingInquiryQuotationId(null);
     }
   };
 
@@ -446,7 +524,9 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         )}
                       </div>
                     </div>
-                    {filteredProductEnquiries.map((inquiry: Inquiry & { productName?: string; latestQuotationStatus?: string | null }) => (
+                    {filteredProductEnquiries.map((inquiry: Inquiry & { productName?: string; latestQuotationStatus?: string | null }) => {
+                      const relatedQuotation = getLatestQuotationForInquiry(inquiry.id);
+                      return (
                       <div key={inquiry.id} className="border rounded-lg p-4 hover:bg-gray-50">
                         <div className="flex flex-col gap-3 mb-3">
                           <div className="flex flex-wrap items-center gap-2">
@@ -485,7 +565,32 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                               </Badge>
                             )}
                           </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
+                            {canAssignInquiries && (
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <span className="text-xs text-gray-500 whitespace-nowrap">Assign to</span>
+                                <Select
+                                  value={inquiry.assignedTo || "unassigned"}
+                                  onValueChange={(value) => assignInquiryMutation.mutate({
+                                    inquiryId: inquiry.id,
+                                    assignedTo: value === "unassigned" ? null : value
+                                  })}
+                                  disabled={assignInquiryMutation.isPending || salesReps.length === 0}
+                                >
+                                  <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
+                                    <SelectValue placeholder="Unassigned" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {salesReps.map((rep: any) => (
+                                      <SelectItem key={rep.id} value={rep.id}>
+                                        {[rep.firstName, rep.lastName].filter(Boolean).join(' ') || rep.email}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -529,6 +634,33 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 </div>
                               </DialogContent>
                             </Dialog>
+                              {relatedQuotation && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadInquiryQuotationPdf(relatedQuotation.id)}
+                                  disabled={downloadingInquiryQuotationId === relatedQuotation.id}
+                                  data-testid={`button-download-inquiry-quotation-${inquiry.id}`}
+                                  className="min-h-[44px] w-full sm:w-auto"
+                                >
+                                  <Download className="w-4 h-4 mr-1" />
+                                  {downloadingInquiryQuotationId === relatedQuotation.id
+                                    ? "Preparing PDF..."
+                                    : relatedQuotation.status === "draft" ? "Download Draft PDF" : "Download PDF"}
+                                </Button>
+                              )}
+                              {relatedQuotation?.status === "draft" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingQuotationId(relatedQuotation.id)}
+                                  data-testid={`button-edit-inquiry-quotation-${inquiry.id}`}
+                                  className="min-h-[44px] w-full sm:w-auto"
+                                >
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  Edit Quote
+                                </Button>
+                              )}
                             {!inquiry.crmLeadId && (
                               <Button 
                                 variant="default"
@@ -568,7 +700,8 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                           </div>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -582,6 +715,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
           </div>
         </div>
       </div>
+
+      <QuotationEditDialog
+        quotationId={editingQuotationId}
+        open={editingQuotationId !== null}
+        onClose={() => setEditingQuotationId(null)}
+      />
 
       {/* Inquiry Details Dialog */}
       {selectedInquiry && (
