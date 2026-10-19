@@ -38,6 +38,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [inquiryToConvert, setInquiryToConvert] = useState<Inquiry | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [quoteDialogInquiryId, setQuoteDialogInquiryId] = useState<number | null>(null);
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -73,10 +74,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (quotation: any) => {
       toast({
-        title: "Success",
-        description: "Quotation created successfully"
+        title: quotation.status === "sent" ? "Quote published" : "Draft saved",
+        description: quotation.status === "sent"
+          ? "The quotation is available in the customer's dashboard. No email was sent."
+          : "The quotation draft has been saved and is not visible to the customer."
       });
       queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
@@ -494,9 +497,17 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                               <Eye className="w-4 h-4 mr-1" />
                               View
                             </Button>
-                            <Dialog>
+                            <Dialog
+                              open={quoteDialogInquiryId === inquiry.id}
+                              onOpenChange={(open) => setQuoteDialogInquiryId(open ? inquiry.id : null)}
+                            >
                               <DialogTrigger asChild>
-                                <Button size="sm" data-testid={`button-create-quote-${inquiry.id}`} className="min-h-[44px] w-full sm:w-auto">
+                                <Button
+                                  size="sm"
+                                  data-testid={`button-create-quote-${inquiry.id}`}
+                                  className="min-h-[44px] w-full sm:w-auto"
+                                  onClick={() => setQuoteDialogInquiryId(inquiry.id)}
+                                >
                                   <FileText className="w-4 h-4 mr-1" />
                                   Create Quote
                                 </Button>
@@ -508,7 +519,9 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 <div className="max-h-[75vh] overflow-y-auto pr-2">
                                   <QuotationForm 
                                     inquiry={inquiry} 
-                                    onSubmit={(data: any) => createQuotationMutation.mutate(data)}
+                                    onSubmit={(data: any) => createQuotationMutation.mutate(data, {
+                                      onSuccess: () => setQuoteDialogInquiryId(null)
+                                    })}
                                     isLoading={createQuotationMutation.isPending}
                                   />
                                 </div>

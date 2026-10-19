@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SalesLayout } from "@/components/layouts/SalesLayout";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   FileText, ShoppingCart, DollarSign, TrendingUp, 
   Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package,
-  Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash
+  Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash, Send
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -67,6 +68,8 @@ interface SalesOrder {
 }
 
 export default function MySalesAndQuotations() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("quotations");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -78,6 +81,39 @@ export default function MySalesAndQuotations() {
   const [showSalesOrderDetail, setShowSalesOrderDetail] = useState(false);
   const [showQuotationActivity, setShowQuotationActivity] = useState(false);
   const [showSalesOrderActivity, setShowSalesOrderActivity] = useState(false);
+
+  const publishQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}/publish-to-customer`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to publish quotation to the customer dashboard");
+      }
+      return result;
+    },
+    onSuccess: (quotation: Quotation) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      if (quotation.customerId) {
+        queryClient.invalidateQueries({
+          queryKey: [`/api/customer/quotations/${quotation.customerId}`],
+        });
+      }
+      toast({
+        title: "Quote published",
+        description: "The customer can now view and download the quotation in their dashboard. No email was sent.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not publish quote",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: metrics, isLoading: metricsLoading } = useQuery<SalesMetrics>({
     queryKey: ['/api/sales-metrics'],
@@ -408,9 +444,23 @@ export default function MySalesAndQuotations() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDownloadQuotationPdf(quotation.id)}
+                                  title="Download quotation PDF"
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
+                                {quotation.status === "draft" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => publishQuotationMutation.mutate(quotation.id)}
+                                    disabled={publishQuotationMutation.isPending}
+                                    data-testid={`button-publish-quotation-${quotation.id}`}
+                                    title="Make this quotation available in the customer dashboard"
+                                  >
+                                    <Send className="mr-1 h-4 w-4" />
+                                    Send to customer
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>

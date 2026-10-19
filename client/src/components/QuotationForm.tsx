@@ -117,9 +117,7 @@ Packaging: Standard export packaging`,
     return getSubtotal() - getDiscountAmount() + getGstAmount();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const submitQuotation = (status: "draft" | "sent") => {
     const subtotal = getSubtotal();
     const discountAmount = getDiscountAmount();
     const gstAmount = getGstAmount();
@@ -135,7 +133,7 @@ Packaging: Standard export packaging`,
       discountAmount: discountAmount.toString(),
       currency: formData.currency,
       priceType: formData.priceType,
-      status: formData.status,
+      status,
       terms: formData.terms,
       notes: formData.notes,
       includeGst: formData.includeGst,
@@ -143,16 +141,21 @@ Packaging: Standard export packaging`,
       gstPercentage: formData.includeGst ? formData.gstPercentage : null,
       gstAmount: formData.includeGst ? gstAmount.toString() : null,
       items: items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice.toString(),
-        specifications: item.specifications
+        productId: item.productId > 0 ? item.productId : null,
+        quantity: item.quantity.trim() ? item.quantity : null,
+        unit: item.unit || null,
+        unitPrice: item.unitPrice.trim() ? item.unitPrice : null,
+        totalPrice: item.quantity.trim() && item.unitPrice.trim() ? item.totalPrice.toString() : null,
+        specifications: item.specifications.trim() || null
       }))
     };
 
     onSubmit(quotationData);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitQuotation(formData.status === "sent" ? "sent" : "draft");
   };
 
   return (
@@ -486,11 +489,20 @@ Packaging: Standard export packaging`,
 
         {/* Submit */}
         <div className="flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white pt-4 border-t">
-          <Button type="button" variant="outline" className="min-h-[44px]">
+          <p className="text-xs text-gray-500 sm:mr-auto sm:max-w-md">
+            Sending publishes the quotation to the customer dashboard. Email delivery will be added later.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-[44px]"
+            disabled={isLoading}
+            onClick={() => submitQuotation("draft")}
+          >
             Save as Draft
           </Button>
           <Button type="submit" disabled={isLoading} className="min-h-[44px]">
-            {isLoading ? "Creating..." : formData.status === "sent" ? "Send Quotation" : "Create Quotation"}
+            {isLoading ? "Saving..." : formData.status === "sent" ? "Send to Customer Dashboard" : "Create Quotation"}
           </Button>
         </div>
       </form>

@@ -2652,6 +2652,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       const filters: any = {
         customerId,
+        statuses: ["sent", "accepted", "rejected", "expired"],
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
@@ -2678,6 +2679,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       const filters: any = {
         customerId,
+        statuses: ["sent", "accepted", "rejected", "expired"],
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       };
@@ -3684,11 +3686,49 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       // Extract items array before parsing (it's not part of quotations table schema)
       const items = req.body.items || [];
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ message: "Quotation items must be a list" });
+      }
+      if (req.body.status === "sent" && (
+        items.length === 0 ||
+        items.some((item: any) =>
+          !item.quantity ||
+          Number(item.quantity) <= 0 ||
+          item.unitPrice == null ||
+          item.unitPrice === "" ||
+          !Number.isFinite(Number(item.unitPrice)) ||
+          Number(item.unitPrice) < 0
+        )
+      )) {
+        return res.status(400).json({
+          message: "Add a valid quantity and unit price to every line item before sending the quotation."
+        });
+      }
+      const inquiryId = Number(req.body.inquiryId);
+      const relatedInquiry = Number.isInteger(inquiryId) && inquiryId > 0
+        ? await storage.getInquiry(inquiryId)
+        : undefined;
+
+      if (req.body.inquiryId && !relatedInquiry) {
+        return res.status(404).json({ message: "The inquiry for this quotation was not found" });
+      }
+
+      // The inquiry is the source of truth for the customer account. Never trust
+      // a customer ID supplied by the browser when publishing a quotation.
+      const customerId = relatedInquiry?.customerId || null;
+      if (req.body.status === "sent" && !customerId) {
+        return res.status(400).json({
+          message: "This inquiry is not linked to a customer login, so it cannot be published to the customer dashboard."
+        });
+      }
       
       // Convert string date to Date object if needed
       const processedData = {
         ...req.body,
         createdBy: userId,
+        customerId,
+        sentAt: req.body.status === "sent" ? new Date() : null,
+        sentBy: req.body.status === "sent" ? userId : null,
         validUntil: typeof req.body.validUntil === 'string' ? new Date(req.body.validUntil) : req.body.validUntil
       };
       
@@ -3699,31 +3739,35 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       console.log("Parsed quotation data:", quotationData);
       console.log("Quotation items count:", items.length);
       
-      const quotation = await storage.createQuotation(quotationData);
-      
-      // Create quotation items if provided
-      if (items.length > 0) {
-        for (const item of items) {
-          await db.insert(quotationItems).values({
-            quotationId: quotation.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            unit: item.unit,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
+      const quotation = await db.transaction(async (tx) => {
+        const quotationId = `QUO${Date.now()}`;
+        const [createdQuotation] = await tx
+          .insert(quotations)
+          .values({ ...quotationData, quotationId })
+          .returning();
+
+        if (items.length > 0) {
+          await tx.insert(quotationItems).values(items.map((item: any) => ({
+            quotationId: createdQuotation.id,
+            productId: item.productId && Number(item.productId) > 0 ? Number(item.productId) : null,
+            quantity: item.quantity === "" || item.quantity == null ? null : String(item.quantity),
+            unit: item.unit || null,
+            unitPrice: item.unitPrice === "" || item.unitPrice == null ? null : String(item.unitPrice),
+            totalPrice: item.totalPrice === "" || item.totalPrice == null ? null : String(item.totalPrice),
             specifications: item.specifications || null
-          });
+          })));
         }
-        console.log(`Created ${items.length} quotation items for quotation ${quotation.id}`);
-      }
-      
-      // Update the inquiry status to "responded" when quotation is created
-      if (quotation.inquiryId) {
-        await storage.updateInquiry(quotation.inquiryId, { 
-          status: 'responded',
-          assignedTo: userId 
-        });
-      }
+
+        // A draft stays internal. Mark the inquiry as responded only when its
+        // quotation is actually published to the customer's dashboard.
+        if (createdQuotation.inquiryId && createdQuotation.status === "sent") {
+          await tx.update(inquiries)
+            .set({ status: "responded", assignedTo: userId })
+            .where(eq(inquiries.id, createdQuotation.inquiryId));
+        }
+
+        return createdQuotation;
+      });
       
       res.status(201).json(quotation);
     } catch (error) {
@@ -3733,6 +3777,87 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
       console.error("Error creating quotation:", error);
       res.status(500).json({ message: "Failed to create quotation" });
+    }
+  });
+
+  // Publish an already-saved draft to its customer's dashboard. Email delivery
+  // is intentionally not part of this action.
+  app.patch('/api/quotations/:id/publish-to-customer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || (!user.role?.includes("sales") && !user.role?.includes("admin"))) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const quotationId = Number(req.params.id);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation ID" });
+      }
+
+      const quotation = await storage.getQuotation(quotationId);
+      if (!quotation) return res.status(404).json({ message: "Quotation not found" });
+      if (quotation.status === "sent") return res.json(quotation);
+      if (quotation.status !== "draft") {
+        return res.status(409).json({ message: "Only draft quotations can be published to a customer" });
+      }
+
+      const relatedInquiry = quotation.inquiryId
+        ? await storage.getInquiry(quotation.inquiryId)
+        : undefined;
+      const customerId = relatedInquiry?.customerId || quotation.customerId || null;
+      if (!customerId) {
+        return res.status(400).json({
+          message: "This quotation is not linked to a customer login, so it cannot be published to the customer dashboard."
+        });
+      }
+
+      const quotationItemsToPublish = await db.select()
+        .from(quotationItems)
+        .where(eq(quotationItems.quotationId, quotationId));
+      if (
+        quotationItemsToPublish.length === 0 ||
+        quotationItemsToPublish.some((item) =>
+          !item.quantity ||
+          Number(item.quantity) <= 0 ||
+          item.unitPrice == null ||
+          !Number.isFinite(Number(item.unitPrice)) ||
+          Number(item.unitPrice) < 0
+        )
+      ) {
+        return res.status(400).json({
+          message: "Complete the quantity and unit price for every line item before sending the quotation."
+        });
+      }
+
+      const publishedQuotation = await db.transaction(async (tx) => {
+        const [updatedQuotation] = await tx.update(quotations)
+          .set({
+            status: "sent",
+            customerId,
+            sentAt: new Date(),
+            sentBy: userId,
+            updatedAt: new Date()
+          })
+          .where(and(eq(quotations.id, quotationId), eq(quotations.status, "draft")))
+          .returning();
+
+        if (updatedQuotation?.inquiryId) {
+          await tx.update(inquiries)
+            .set({ status: "responded", assignedTo: userId })
+            .where(eq(inquiries.id, updatedQuotation.inquiryId));
+        }
+        return updatedQuotation;
+      });
+
+      if (!publishedQuotation) {
+        return res.status(409).json({ message: "This quotation is no longer a draft" });
+      }
+
+      return res.json(publishedQuotation);
+    } catch (error) {
+      console.error("Error publishing quotation to customer dashboard:", error);
+      return res.status(500).json({ message: "Failed to publish quotation to customer dashboard" });
     }
   });
 
@@ -4076,6 +4201,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         const quotationOwnerId = quotation.customerId ?? relatedInquiry?.customerId;
         if (quotationOwnerId !== customerId) {
           return res.status(403).json({ message: "You can only download your own quotations" });
+        }
+        if (!["sent", "accepted", "rejected", "expired"].includes(quotation.status)) {
+          return res.status(404).json({ message: "Quotation is not available to the customer" });
         }
       }
 

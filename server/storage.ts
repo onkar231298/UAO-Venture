@@ -409,6 +409,7 @@ export interface IStorage {
     inquiryId?: number;
     leadId?: number;
     status?: string;
+    statuses?: string[];
     startDate?: Date;
     endDate?: Date;
     limit?: number;
@@ -3306,6 +3307,7 @@ export class DatabaseStorage implements IStorage {
     inquiryId?: number;
     leadId?: number;
     status?: string;
+    statuses?: string[];
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -3332,6 +3334,10 @@ export class DatabaseStorage implements IStorage {
     
     if (filters?.status) {
       conditions.push(eq(quotations.status, filters.status));
+    }
+
+    if (filters?.statuses?.length) {
+      conditions.push(inArray(quotations.status, filters.statuses));
     }
     
     if (filters?.startDate) {
@@ -3368,6 +3374,7 @@ export class DatabaseStorage implements IStorage {
           createdAt: quotations.createdAt,
           updatedAt: quotations.updatedAt,
           leadId: quotations.leadId,
+          crmLeadId: inquiries.crmLeadId,
           leadTime: quotations.leadTime,
           paymentTerms: quotations.paymentTerms,
           sentAt: quotations.sentAt,
