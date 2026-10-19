@@ -50,6 +50,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [showCategorySidebar, setShowCategorySidebar] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [mobileIngredientsOpen, setMobileIngredientsOpen] = useState(false);
@@ -58,6 +59,7 @@ export default function Header() {
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
+  const isSuggestionListOpen = showSuggestions && suggestions.length > 0;
   const isPathActive = (...paths: string[]) =>
     paths.some((path) => location === path || (path !== "/" && location.startsWith(`${path}/`)));
 
@@ -103,6 +105,7 @@ export default function Header() {
 
   // Update suggestions when data changes
   useEffect(() => {
+    setActiveSuggestionIndex(-1);
     if (suggestionsData?.products) {
       setSuggestions(suggestionsData.products);
       setShowSuggestions(searchQuery.length >= 2 && suggestionsData.products.length > 0);
@@ -117,6 +120,7 @@ export default function Header() {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+        setActiveSuggestionIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -133,6 +137,7 @@ export default function Header() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
       
       // Clean the search query
       const cleanQuery = searchQuery.trim();
@@ -147,29 +152,50 @@ export default function Header() {
   const handleSuggestionClick = (product: Product) => {
     setSearchQuery("");
     setShowSuggestions(false);
+    setActiveSuggestionIndex(-1);
     // Navigate directly to product detail page using slug
     setLocation(`/product/${product.slug}`);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+    setActiveSuggestionIndex(-1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      if (showSuggestions) {
+        e.preventDefault();
+        setShowSuggestions(false);
+        setActiveSuggestionIndex(-1);
+      }
+      return;
+    }
+
     if (!showSuggestions || suggestions.length === 0) {
       return;
     }
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        // Navigate to first suggestion and trigger click
-        if (suggestions.length > 0) {
-          handleSuggestionClick(suggestions[0]);
-        }
+        setActiveSuggestionIndex((currentIndex) =>
+          Math.min(currentIndex + 1, suggestions.length - 1)
+        );
         break;
-      case 'Escape':
-        setShowSuggestions(false);
+      case "ArrowUp":
+        e.preventDefault();
+        setActiveSuggestionIndex((currentIndex) =>
+          currentIndex < 0
+            ? suggestions.length - 1
+            : Math.max(currentIndex - 1, 0)
+        );
+        break;
+      case "Enter":
+        if (activeSuggestionIndex >= 0 && suggestions[activeSuggestionIndex]) {
+          e.preventDefault();
+          handleSuggestionClick(suggestions[activeSuggestionIndex]);
+        }
         break;
     }
   };
@@ -584,8 +610,22 @@ export default function Header() {
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onBlur={() => setTimeout(() => {
+                    setShowSuggestions(false);
+                    setActiveSuggestionIndex(-1);
+                  }, 200)}
                   aria-label="Search organic ingredients"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={isSuggestionListOpen}
+                  aria-controls={
+                    isSuggestionListOpen ? "header-search-suggestions" : undefined
+                  }
+                  aria-activedescendant={
+                    isSuggestionListOpen && activeSuggestionIndex >= 0
+                      ? `header-search-option-${activeSuggestionIndex}`
+                      : undefined
+                  }
                   className="bfo-header-search-input w-full px-4 py-2 pl-4 pr-12 text-sm text-gray-900 bg-white border border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent"
                 />
                 <button
@@ -598,12 +638,26 @@ export default function Header() {
               </form>
 
               {/* Search Suggestions */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="bfo-header-search-suggestions absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50">
-                  {suggestions.map((product) => (
+              {isSuggestionListOpen && (
+                <div
+                  id="header-search-suggestions"
+                  role="listbox"
+                  aria-label="Product suggestions"
+                  className="bfo-header-search-suggestions absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-64 overflow-y-auto z-50"
+                >
+                  {suggestions.map((product, index) => (
                     <div
                       key={product.id}
-                      className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      id={`header-search-option-${index}`}
+                      role="option"
+                      aria-selected={activeSuggestionIndex === index}
+                      className={`px-4 py-2 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                        activeSuggestionIndex === index
+                          ? "bg-gray-100"
+                          : "hover:bg-gray-50"
+                      }`}
+                      onMouseEnter={() => setActiveSuggestionIndex(index)}
+                      onMouseDown={(event) => event.preventDefault()}
                       onClick={() => handleSuggestionClick(product)}
                     >
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
