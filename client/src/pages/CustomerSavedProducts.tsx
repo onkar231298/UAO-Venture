@@ -2,20 +2,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { Heart, Package, Eye, Trash2, ShoppingCart } from "lucide-react";
+import { Heart, Package, Eye } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
-import { useLocation } from "wouter";
-import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import CustomerFavoriteButton from "@/components/CustomerFavoriteButton";
+import OptimizedImage from "@/components/OptimizedImage";
+
+interface SavedProduct {
+  id: number;
+  name: string;
+  slug: string;
+  productId: string;
+  category: string | null;
+  price: string | number | null;
+  priceUnit: string | null;
+  imageUrl: string | null;
+  savedAt: string;
+}
 
 export default function CustomerSavedProducts() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
   const [, setLocation] = useLocation();
-  const [savedProducts, setSavedProducts] = useState<any[]>([]);
-
-  // For now, show empty state since wishlist functionality isn't implemented yet
-  const isLoading = false;
+  const savedProductsKey = `/api/customer/saved-products/${customer?.id}`;
+  const {
+    data: savedProducts = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<SavedProduct[]>({
+    queryKey: [savedProductsKey],
+    enabled: isCustomerAuthenticated && !!customer?.id,
+  });
 
   if (!isCustomerAuthenticated || !customer) {
     return (
@@ -61,6 +80,18 @@ export default function CustomerSavedProducts() {
                 </Card>
               ))}
             </div>
+          ) : isError ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Your saved products could not be loaded</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
+                  Check your connection and try again.
+                </p>
+                <Button onClick={() => refetch()} className="min-h-[44px]">
+                  Try again
+                </Button>
+              </CardContent>
+            </Card>
           ) : savedProducts.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -76,21 +107,29 @@ export default function CustomerSavedProducts() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedProducts.map((product: any) => (
+              {savedProducts.map((product) => (
                 <Card key={product.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4 sm:p-6">
                     <div className="relative mb-4">
-                      <div className="w-full h-32 sm:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <Link href={`/products/${product.slug}`} className="block">
+                        {product.imageUrl ? (
+                          <OptimizedImage
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-32 sm:h-40 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-32 sm:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                      </Link>
+                      <CustomerFavoriteButton
+                        productId={product.id}
+                        productName={product.name}
                         className="absolute top-2 right-2 min-h-[44px] min-w-[44px] p-0 bg-white shadow-md hover:bg-red-50"
-                        data-testid={`button-remove-product-${product.id}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
+                        iconClassName="w-4 h-4 text-red-500"
+                      />
                     </div>
                     
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -98,23 +137,21 @@ export default function CustomerSavedProducts() {
                     </h3>
                     
                     <div className="flex items-center justify-between mb-3">
-                      <Badge variant="secondary">{product.category}</Badge>
-                      <span className="text-sm text-gray-600">{product.moq}</span>
+                      {product.category ? <Badge variant="secondary">{product.category}</Badge> : <span />}
+                      <span className="text-sm text-gray-600">
+                        {product.priceUnit ? `Per ${product.priceUnit}` : ""}
+                      </span>
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 w-full min-h-[44px]"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        className="w-full min-h-[44px]"
                         onClick={() => setLocation(`/products/${product.slug}`)}
                         data-testid={`button-view-product-${product.id}`}
                       >
                         <Eye className="w-3 h-3 mr-1" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1 w-full min-h-[44px]" data-testid={`button-inquire-product-${product.id}`}>
-                        <ShoppingCart className="w-3 h-3 mr-1" />
-                        Inquire
+                        View product
                       </Button>
                     </div>
                   </CardContent>

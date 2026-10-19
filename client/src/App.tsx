@@ -272,7 +272,7 @@ function Router() {
       <Route path="/customer/inquiries" component={CustomerDashboard} />
       <Route path="/customer/high-volume-bids" component={CustomerDashboard} />
       <Route path="/customer/sample-requests" component={CustomerDashboard} />
-      <Route path="/customer/saved" component={CustomerDashboard} />
+      <Route path="/customer/saved" component={CustomerSavedProducts} />
       <Route path="/customer/quotes" component={CustomerDashboard} />
       <Route path="/customer/downloads" component={CustomerDashboard} />
       <Route path="/customer/catalogs" component={CustomerDashboard} />

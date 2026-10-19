@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowUpRight, Heart, Leaf, MapPin, MessageSquare } from "lucide-react";
+import { ArrowUpRight, Leaf, MapPin, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { formatPrice, getProductPrice } from "@/lib/currencyUtils";
 import type { Product } from "@shared/schema";
+import CustomerFavoriteButton from "@/components/CustomerFavoriteButton";
 
 export interface FeaturedProduct {
   id: number;
@@ -95,13 +96,12 @@ export default function FeaturedProductSlide({ product, index, total }: Featured
             {productType}
           </span>
         )}
-        <button
-          type="button"
+        <CustomerFavoriteButton
+          productId={product.id}
+          productName={product.name}
           className="featured-product-wishlist"
-          aria-label={`Add ${product.name} to wishlist`}
-        >
-          <Heart aria-hidden="true" />
-        </button>
+          iconClassName="h-5 w-5"
+        />
         <Link
           href={`/products/${product.slug}`}
           className="featured-product-image-link"
