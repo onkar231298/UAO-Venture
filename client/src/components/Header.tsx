@@ -466,20 +466,24 @@ export default function Header() {
               {isAuthenticated || isCustomerAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="bg-green-600 text-white hover:bg-green-700 border-green-600">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bfo-account-menu-trigger bg-green-700 text-white hover:bg-green-800 border-green-700 !text-white hover:!text-white"
+                    >
                       <Avatar className="w-4 h-4 sm:w-6 sm:h-6 mr-1 sm:mr-2">
                         <AvatarImage src={user?.avatar} />
                         <AvatarFallback className="bg-green-500 text-white text-xs">
                           {isAuthenticated ? user?.name?.charAt(0) || 'A' : customer?.firstName?.charAt(0) || customer?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden sm:inline">
+                      <span className="hidden sm:inline !text-white">
                         {isAuthenticated ? user?.name || 'Admin' : customer?.firstName ? `${customer.firstName} ${customer.lastName || ''}`.trim() : customer?.companyName || 'User'}
                       </span>
-                      <span className="sm:hidden">
+                      <span className="sm:hidden !text-white">
                         {isAuthenticated ? 'Admin' : customer?.firstName || 'User'}
                       </span>
-                      <ChevronDown className="w-3 h-3 ml-1" />
+                      <ChevronDown className="w-3 h-3 ml-1 !text-white" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">

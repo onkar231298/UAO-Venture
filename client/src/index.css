@@ -1132,6 +1132,13 @@ button.certification-ticker-card:hover {
   border-color: var(--atlas-leaf) !important;
 }
 
+.bfo-account-menu-trigger,
+.bfo-account-menu-trigger > span,
+.bfo-account-menu-trigger > svg {
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
 /* Premium all-products catalog cards — deliberately scoped to the opt-in card variant. */
 .catalog-product-card {
   overflow: hidden;

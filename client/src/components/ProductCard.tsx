@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +22,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, variant = "default" }: ProductCardProps) {
   const { currency } = useCurrency();
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const isCatalog = variant === "catalog";
   
   // Get the product image - prioritize WebP fields over legacy fields
@@ -150,7 +152,7 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
 
       <CardContent className={isCatalog ? "catalog-product-actions" : "px-3 sm:px-4 pb-3 sm:pb-4 pt-0"}>
         <div className={isCatalog ? "flex gap-2" : "flex space-x-2"}>
-          <Dialog>
+          <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
             <DialogTrigger asChild>
               <Button className={isCatalog
                 ? "catalog-quote-button flex-1"
@@ -168,6 +170,7 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
                 product={product} 
                 isCustomerAuthenticated={isCustomerAuthenticated}
                 customerData={customer}
+                onSuccess={() => setIsQuoteDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>

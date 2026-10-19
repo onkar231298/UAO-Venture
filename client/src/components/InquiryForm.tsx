@@ -63,7 +63,9 @@ export default function InquiryForm({ product, onSuccess, customerData, isCustom
       trackProjectEvent("inquiry_submitted", { form: "standard" });
       toast({
         title: "Inquiry Submitted",
-        description: "Your inquiry has been submitted successfully. Our team will contact you soon.",
+        description: isCustomerAuthenticated
+          ? "Your inquiry is now available under My Enquiry in your customer dashboard. Our team will contact you soon."
+          : "Your inquiry has been submitted successfully. Our team will contact you soon.",
       });
       
       // Reset form

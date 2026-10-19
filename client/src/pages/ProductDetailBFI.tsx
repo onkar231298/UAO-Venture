@@ -70,6 +70,7 @@ export default function ProductDetailBFI() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products/slug", slug],
@@ -521,7 +522,7 @@ export default function ProductDetailBFI() {
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">
-                <Dialog>
+                <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-orange-600 hover:bg-orange-700 text-white">
                       <MessageSquare className="w-4 h-4 mr-2" />
@@ -537,6 +538,7 @@ export default function ProductDetailBFI() {
                         product={product} 
                         customerData={customer}
                         isCustomerAuthenticated={isCustomerAuthenticated}
+                        onSuccess={() => setIsQuoteDialogOpen(false)}
                       />
                     </div>
                   </DialogContent>

@@ -76,7 +76,9 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
       trackProjectEvent("inquiry_submitted", { form: "product" });
       toast({
         title: "Inquiry Submitted Successfully",
-        description: "We'll get back to you with a quotation within 24 hours.",
+        description: isCustomerAuthenticated
+          ? "Your request is now available under My Enquiry in your customer dashboard. We'll get back to you with a quotation within 24 hours."
+          : "We'll get back to you with a quotation within 24 hours.",
       });
       setIsDialogOpen(false);
       setFormData({
@@ -93,6 +95,9 @@ export function EnhancedInquiryForm({ product, isAuthenticated, customerData, is
         urgency: "normal"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      if (isCustomerAuthenticated && customerData?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/customer/inquiries/${customerData.id}`] });
+      }
     },
     onError: (error: any) => {
       toast({
