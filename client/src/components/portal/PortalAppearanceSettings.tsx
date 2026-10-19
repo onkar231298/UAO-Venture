@@ -112,6 +112,9 @@ export default function PortalAppearanceSettings() {
                 data-value={palette.id}
                 tabIndex={selected ? 0 : -1}
                 className={`portal-appearance__palette${selected ? " is-selected" : ""}`}
+                style={{
+                  "--palette-accent": palette.accent,
+                } as CSSProperties}
                 onClick={() => setPalette(palette.id)}
               >
                 <span className="portal-appearance__palette-top">

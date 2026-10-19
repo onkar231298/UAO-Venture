@@ -9,13 +9,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, ShoppingCart, DollarSign, TrendingUp, 
   Eye, Activity, RefreshCw, Download, Building2, User, Mail, Package, Pencil,
-  Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash, Send
+  Search, Calendar, Phone, MapPin, FileCheck, Clock, Hash, Send, Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 import QuotationForm from "@/components/QuotationForm";
@@ -86,6 +96,7 @@ export default function MySalesAndQuotations() {
   const [showSalesOrderActivity, setShowSalesOrderActivity] = useState(false);
   const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
+  const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
 
   const publishQuotationMutation = useMutation({
     mutationFn: async (quotationId: number) => {
@@ -114,6 +125,36 @@ export default function MySalesAndQuotations() {
     onError: (error: Error) => {
       toast({
         title: "Could not publish quote",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to delete draft quotation");
+      }
+      return result as { id: number; quotationId: string };
+    },
+    onSuccess: (deletedQuotation) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-metrics"] });
+      setQuotationToDelete(null);
+      toast({
+        title: "Draft quotation deleted",
+        description: `${deletedQuotation.quotationId} and its line items were permanently removed.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not delete draft quotation",
         description: error.message,
         variant: "destructive",
       });
@@ -497,6 +538,21 @@ export default function MySalesAndQuotations() {
                                     Send to customer
                                   </Button>
                                 )}
+                                {quotation.status === "draft" && !quotation.sentAt && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => setQuotationToDelete(quotation)}
+                                    disabled={deleteQuotationMutation.isPending}
+                                    data-testid={`button-delete-quotation-${quotation.id}`}
+                                    aria-label={`Delete draft quotation ${quotation.quotationId}`}
+                                    title="Permanently delete this unsent draft"
+                                  >
+                                    <Trash2 className="mr-1 h-4 w-4" />
+                                    Delete
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -629,6 +685,36 @@ export default function MySalesAndQuotations() {
         open={showSalesOrderActivity}
         onClose={() => setShowSalesOrderActivity(false)}
       />
+
+      <AlertDialog
+        open={quotationToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setQuotationToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete draft quotation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{quotationToDelete?.quotationId}</strong> and its quotation line items.
+              This cannot be undone. Only unsent drafts can be deleted; sent or accepted quotations are protected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteQuotationMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (quotationToDelete) deleteQuotationMutation.mutate(quotationToDelete.id);
+              }}
+              disabled={deleteQuotationMutation.isPending}
+              data-testid="button-confirm-delete-quotation"
+            >
+              {deleteQuotationMutation.isPending ? "Deleting..." : "Delete draft"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SalesLayout>
   );
 }
@@ -906,6 +992,55 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
                         </div>
                       </div>
                     )}
+                  </div>
+                </>
+              )}
+
+              {quotationDetails?.termsTemplateVersion && (
+                <>
+                  <Separator />
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">General Terms &amp; Conditions</p>
+                    <p className="mt-1 text-sm font-medium">
+                      Version {quotationDetails.termsTemplateVersion}
+                      {quotationDetails.termsTemplateId ? ` · template #${quotationDetails.termsTemplateId}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      This quotation retains the exact terms text saved when it was issued.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {quotationDetails?.termsAcceptances?.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="mb-3 text-sm font-semibold flex items-center gap-2">
+                      <FileCheck className="h-4 w-4" />
+                      Terms Acceptance Audit
+                    </h4>
+                    <div className="space-y-2">
+                      {quotationDetails.termsAcceptances.map((acceptance: any) => (
+                        <div key={acceptance.id} className="rounded-lg border bg-muted/30 p-3 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-medium">
+                              {acceptance.customerCompanyName || "Customer"} accepted
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(acceptance.acceptedAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Method: {acceptance.acceptanceMethod.replace(/_/g, " ")}
+                            {" · "}Terms version: {acceptance.termsTemplateVersion || "No version attached"}
+                          </p>
+                          {acceptance.supportingEvidence && (
+                            <p className="mt-2 break-words text-xs">{acceptance.supportingEvidence}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}

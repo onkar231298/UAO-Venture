@@ -12,28 +12,28 @@ export interface PortalPalette {
 
 export const PORTAL_PALETTES: readonly PortalPalette[] = [
   {
-    id: "navy-amber", name: "Navy & Amber", description: "Classic navy with warm, clear action colours.",
-    sidebar: "#172B4D", accent: "#D5851F", action: "#9C5B0F",
-    light: { bg: "#F7F7F2", panel: "#FFFFFF", raised: "#F0F2EE", input: "#FFFFFF", text: "#24334A", muted: "#59697B", border: "#DCE2E6", accentReadable: "#8D5109" },
-    dark: { bg: "#17202D", panel: "#263449", raised: "#304057", input: "#202D40", text: "#EDF1F5", muted: "#B4C0CF", border: "#43536A", accentReadable: "#F3BF76" },
+    id: "navy-amber", name: "Navy & Amber", description: "Inky navy, crisp slate and warm amber actions.",
+    sidebar: "#142B4A", accent: "#D18A28", action: "#A35C12",
+    light: { bg: "#F4F7FA", panel: "#FFFFFF", raised: "#E9EEF4", input: "#FFFFFF", text: "#1E2A3A", muted: "#536477", border: "#CCD6E1", accentReadable: "#88500D" },
+    dark: { bg: "#111C2B", panel: "#1D2B3F", raised: "#293B52", input: "#18273A", text: "#F4F7FC", muted: "#BECADA", border: "#3A4D66", accentReadable: "#F4BE73" },
   },
   {
-    id: "ocean-teal", name: "Ocean & Teal", description: "Deep ocean blue with balanced teal highlights.",
-    sidebar: "#103B4A", accent: "#12949A", action: "#08777D",
-    light: { bg: "#F1F7F8", panel: "#FFFFFF", raised: "#E8F1F3", input: "#FFFFFF", text: "#143742", muted: "#4F6872", border: "#D4E3E7", accentReadable: "#076A70" },
-    dark: { bg: "#10272E", panel: "#1B3942", raised: "#254954", input: "#133039", text: "#EAF6F7", muted: "#AFCDD1", border: "#3D5B65", accentReadable: "#71D5D6" },
+    id: "ocean-teal", name: "Ocean & Teal", description: "Deep blue-green with bright, confident aqua.",
+    sidebar: "#0B3945", accent: "#13A3A1", action: "#087775",
+    light: { bg: "#F1F8F8", panel: "#FFFFFF", raised: "#E3F1F1", input: "#FFFFFF", text: "#17353B", muted: "#526B70", border: "#C8DDDE", accentReadable: "#08706D" },
+    dark: { bg: "#0D242B", panel: "#17353D", raised: "#21444C", input: "#112C33", text: "#EAF7F7", muted: "#B3D0D2", border: "#365A61", accentReadable: "#73D4CF" },
   },
   {
-    id: "forest-sage", name: "Forest & Sage", description: "Grounded forest green and gentle sage accents.",
-    sidebar: "#173C35", accent: "#5D8B52", action: "#3D6F3C",
-    light: { bg: "#F2F6F1", panel: "#FFFFFF", raised: "#E8EFE5", input: "#FFFFFF", text: "#243D33", muted: "#52665A", border: "#D7E2D5", accentReadable: "#3C6838" },
-    dark: { bg: "#172B24", panel: "#243E31", raised: "#2E4B3B", input: "#1B3328", text: "#EDF5EA", muted: "#B7CDB6", border: "#47614E", accentReadable: "#B0D69E" },
+    id: "forest-sage", name: "Forest & Sage", description: "Grounded evergreen with fresh, natural highlights.",
+    sidebar: "#183D34", accent: "#79A95B", action: "#336B46",
+    light: { bg: "#F2F7F2", panel: "#FFFFFF", raised: "#E5EFE4", input: "#FFFFFF", text: "#203B30", muted: "#52695B", border: "#C9DACB", accentReadable: "#386B3F" },
+    dark: { bg: "#14271F", panel: "#20382C", raised: "#2B4637", input: "#1A3225", text: "#EDF5EC", muted: "#B9CFB9", border: "#405C49", accentReadable: "#B7D89F" },
   },
   {
-    id: "plum-gold", name: "Plum & Gold", description: "Rich plum surfaces with restrained gold details.",
-    sidebar: "#35263F", accent: "#BA9653", action: "#805078",
-    light: { bg: "#F8F4F7", panel: "#FFFFFF", raised: "#F0E8F0", input: "#FFFFFF", text: "#392B43", muted: "#6D5C74", border: "#E1D7E4", accentReadable: "#735814" },
-    dark: { bg: "#281F30", panel: "#3B2D45", raised: "#493652", input: "#302337", text: "#F5EFF8", muted: "#CFBBD8", border: "#604B6A", accentReadable: "#E3C58D" },
+    id: "plum-gold", name: "Plum & Gold", description: "Rich aubergine with polished, understated brass.",
+    sidebar: "#3D2A49", accent: "#C8A05B", action: "#795178",
+    light: { bg: "#F8F4F8", panel: "#FFFFFF", raised: "#F0E8F1", input: "#FFFFFF", text: "#382A40", muted: "#675A6D", border: "#DED2E1", accentReadable: "#76581F" },
+    dark: { bg: "#281E31", panel: "#3C2D47", raised: "#4A3856", input: "#302338", text: "#F4EEF6", muted: "#CEBDD7", border: "#624D6A", accentReadable: "#E5C98E" },
   },
 ];
 

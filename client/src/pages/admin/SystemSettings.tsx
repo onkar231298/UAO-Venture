@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, FileText, Mail, Settings2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, FileText, Mail, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import EmailConfigManagement from "./EmailConfigManagement";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
+import QuotationTermsManagement from "@/pages/crm/QuotationTermsManagement";
+import QuotationPdfTemplateManagement from "./QuotationPdfTemplateManagement";
 
 interface DocumentNumberSetting {
   id: number;
@@ -309,12 +311,14 @@ function DocumentNumberSettings() {
   );
 }
 
-export default function SystemSettings() {
+export default function SystemSettings({ canManagePdfTemplates = false }: { canManagePdfTemplates?: boolean }) {
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
-        <p className="text-muted-foreground">Configure system settings and your personal workspace appearance</p>
+        <p className="text-muted-foreground">Configure system settings, workspace appearance, and reusable templates</p>
       </div>
 
       <Tabs defaultValue="email" className="w-full">
@@ -328,6 +332,10 @@ export default function SystemSettings() {
             <FileText className="h-4 w-4" />
             Document Numbers
           </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2" data-testid="tab-template-management">
+            <FileText className="h-4 w-4" />
+            Template Management
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="appearance" className="mt-6">
@@ -339,6 +347,88 @@ export default function SystemSettings() {
 
         <TabsContent value="documents" className="mt-6">
           <DocumentNumberSettings />
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          {selectedTemplate === "quotation-terms" ? (
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTemplate(null)}
+                data-testid="button-back-to-template-management"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Template Management
+              </Button>
+              <QuotationTermsManagement />
+            </div>
+          ) : selectedTemplate === "quotation-pdf-format" ? (
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTemplate(null)}
+                data-testid="button-back-to-template-management"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Template Management
+              </Button>
+              {canManagePdfTemplates
+                ? <QuotationPdfTemplateManagement />
+                : <p className="text-sm text-destructive">Only a super admin can manage quotation PDF formats.</p>}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold tracking-tight">Template Management</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Keep reusable business templates organized here. More template types can be added to this library as they are introduced.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Card data-testid="template-card-quotation-terms">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Quotation Terms &amp; Conditions
+                    </CardTitle>
+                    <CardDescription>
+                      Review, version, and manage the terms used for future quotation PDFs.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => setSelectedTemplate("quotation-terms")}
+                      data-testid="button-manage-quotation-terms-template"
+                    >
+                      Manage template
+                    </Button>
+                  </CardContent>
+                </Card>
+                {canManagePdfTemplates && (
+                  <Card data-testid="template-card-quotation-pdf-format">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Quotation PDF Format
+                      </CardTitle>
+                      <CardDescription>
+                        Create versioned layouts, preview changes, and activate a format for new quotations.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={() => setSelectedTemplate("quotation-pdf-format")}
+                        data-testid="button-manage-quotation-pdf-format"
+                      >
+                        Manage format
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -34,3 +34,6 @@
 - [Inquiry ownership and quote access](inquiry-assignment-scope.md) — admins see all enquiries; sales users see only assigned enquiries, and related quote access follows that assignment.
 - [Atlas Ingredients rebrand](atlas-ingredients-rebrand.md) — Use Atlas Ingredients in active app content; keep existing domains and email addresses until replacements are supplied.
 - [Public website color palette](public-site-color-palette.md) — Public pages share Atlas forest green, sage, and warm neutrals; keep portal themes and meaningful identity/status colors distinct.
+- [Quotation terms governance](quotation-terms-governance.md) — Keep supplied terms pending review and manage current/future reusable templates from Settings > Template Management.
+- [PDFKit footer page flow](pdfkit-footer-page-flow.md) — Keep explicit footer text inside the page's bottom margin or PDFKit may append spill pages.
+- [Quotation deletion policy](quotation-deletion-policy.md) — Permanently delete only unsent draft quotations; preserve sent, accepted, and order-linked records.

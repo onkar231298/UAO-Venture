@@ -60,6 +60,7 @@ import {
   ALL_STAFF_ROLES,
   quotationItems,
   quotations,
+  salesOrders,
   companies,
   companyContacts,
   companyActivities,
@@ -89,6 +90,9 @@ import {
    userEmailConfigs,
   uploadedDocuments,
   insertUploadedDocumentSchema,
+  quotationTermsTemplates,
+  quotationTermsAcceptances,
+  quotationPdfTemplates,
 } from "@shared/schema";
 import { eq, and, or, ne, isNotNull, isNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
@@ -103,6 +107,11 @@ import QRCode from "qrcode";
 import mimeTypes from "mime-types";
 import { createStaticProductPage, createStaticHomePage } from "./static-handler";
 import { generateProductSEO } from "./seoGenerator";
+import {
+  DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS,
+  QUOTATION_PDF_TEMPLATE_NAME,
+  quotationPdfTemplateSettingsSchema,
+} from "./quotationPdfTemplate";
 import { CANONICAL_ORIGIN, STATIC_PAGE_SEO } from "./seo";
 import { COLLECTION_PAGE_SEO, HOME_SEO, KEYWORD_ASSIGNMENTS, categoryPageSeo, healthSupportPageSeo } from "./seoStrategy";
 import { auditSeoPages, canonicalPageUrl, detectCompetingPages, isCriticalSeoFindingResolved, keywordMatches, normalizeKeywordTokens, replacePrimaryKeywordList, type SeoPage } from "./seoGrowth";
@@ -152,6 +161,7 @@ import {
 } from "./email/aiSalesDraft";
 import { registerChatRoutes } from "./chatRoutes";
 import { createPortalAppearanceHandlers } from "./portalAppearance";
+import { getProposedQuotationTermsText } from "./quotationTerms";
 
 async function canManageQuotation(
   userId: string,
@@ -165,6 +175,39 @@ async function canManageQuotation(
     return inquiry?.assignedTo === userId;
   }
   return quotation.createdBy === userId;
+}
+
+async function getActiveQuotationTermsTemplate() {
+  const [template] = await db.select()
+    .from(quotationTermsTemplates)
+    .where(and(
+      eq(quotationTermsTemplates.isActive, true),
+      eq(quotationTermsTemplates.approvalStatus, "approved"),
+    ))
+    .orderBy(desc(quotationTermsTemplates.approvedAt))
+    .limit(1);
+  return template;
+}
+
+async function getActiveQuotationPdfTemplate() {
+  const [template] = await db.select()
+    .from(quotationPdfTemplates)
+    .where(and(
+      eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME),
+      eq(quotationPdfTemplates.isActive, true),
+    ))
+    .limit(1);
+  return template;
+}
+
+async function requireQuotationPdfTemplateSuperAdmin(req: any, res: any) {
+  const userId = req.user?.claims?.sub;
+  const user = userId ? await storage.getUser(userId) : undefined;
+  if (!user || user.role !== "super_admin") {
+    res.status(403).json({ message: "Only a super admin can manage quotation PDF formats" });
+    return null;
+  }
+  return user;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -3591,6 +3634,215 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
 
+  // Versioned quotation terms administration. Only admins may review or publish
+  // a version; the supplied initial wording is created as pending review.
+  app.get('/api/admin/quotation-terms', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.claims?.sub);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const versions = await db.select()
+        .from(quotationTermsTemplates)
+        .orderBy(desc(quotationTermsTemplates.createdAt), desc(quotationTermsTemplates.id));
+      return res.json({
+        versions,
+        activeVersion: versions.find((version) => version.isActive && version.approvalStatus === "approved") || null,
+      });
+    } catch (error) {
+      console.error("Error fetching quotation terms versions:", error);
+      return res.status(500).json({ message: "Failed to load quotation terms versions" });
+    }
+  });
+
+  app.get('/api/admin/quotation-terms/proposed-content', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user?.claims?.sub);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      return res.json({ termsText: getProposedQuotationTermsText() });
+    } catch (error) {
+      console.error("Error loading proposed quotation terms:", error);
+      return res.status(500).json({ message: "The proposed terms text is unavailable" });
+    }
+  });
+
+  app.post('/api/admin/quotation-terms/initial-draft', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const existing = await db.select({ id: quotationTermsTemplates.id })
+        .from(quotationTermsTemplates)
+        .limit(1);
+      if (existing.length) {
+        return res.status(409).json({ message: "Quotation terms versions already exist" });
+      }
+
+      const [draft] = await db.insert(quotationTermsTemplates).values({
+        templateName: "General Terms & Conditions of Sale",
+        version: "1.0",
+        approvalStatus: "pending_legal_review",
+        termsText: getProposedQuotationTermsText(),
+        revisionNotes: "Initial draft from the user-supplied terms brief. Legal review is required before activation.",
+        createdBy: userId,
+      }).returning();
+      return res.status(201).json(draft);
+    } catch (error) {
+      if ((error as any)?.code === "23505") {
+        return res.status(409).json({ message: "Quotation terms versions already exist" });
+      }
+      console.error("Error creating initial quotation terms draft:", error);
+      return res.status(500).json({ message: "Failed to create the initial draft" });
+    }
+  });
+
+  app.post('/api/admin/quotation-terms/:id/revisions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const baseId = Number(req.params.id);
+      if (!Number.isInteger(baseId) || baseId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation terms version" });
+      }
+      const payload = z.object({
+        termsText: z.string().trim().min(1000).max(50000),
+        revisionNotes: z.string().trim().max(2000).optional().default(""),
+      }).parse(req.body);
+      const [base] = await db.select().from(quotationTermsTemplates)
+        .where(eq(quotationTermsTemplates.id, baseId)).limit(1);
+      if (!base) return res.status(404).json({ message: "Quotation terms version not found" });
+
+      const [latest] = await db.select().from(quotationTermsTemplates)
+        .where(eq(quotationTermsTemplates.templateName, base.templateName))
+        .orderBy(desc(quotationTermsTemplates.createdAt), desc(quotationTermsTemplates.id))
+        .limit(1);
+      const parsedVersion = latest?.version.match(/^(\d+)\.(\d+)$/);
+      if (!parsedVersion) {
+        return res.status(409).json({ message: "The current version number cannot be advanced safely" });
+      }
+      const nextVersion = `${parsedVersion[1]}.${Number(parsedVersion[2]) + 1}`;
+      const [revision] = await db.insert(quotationTermsTemplates).values({
+        templateName: base.templateName,
+        version: nextVersion,
+        approvalStatus: "pending_legal_review",
+        termsText: payload.termsText,
+        revisionNotes: payload.revisionNotes || `Revision based on version ${base.version}`,
+        supersedesId: base.id,
+        isActive: false,
+        createdBy: userId,
+      }).returning();
+      return res.status(201).json(revision);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Enter the complete terms text and revision notes", errors: error.errors });
+      }
+      if ((error as any)?.code === "23505") {
+        return res.status(409).json({ message: "Another quotation terms version was saved at the same time. Reload and try again." });
+      }
+      console.error("Error creating quotation terms revision:", error);
+      return res.status(500).json({ message: "Failed to create quotation terms revision" });
+    }
+  });
+
+  app.post('/api/admin/quotation-terms/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const versionId = Number(req.params.id);
+      if (!Number.isInteger(versionId) || versionId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation terms version" });
+      }
+      const payload = z.object({
+        legalReviewConfirmed: z.literal(true),
+        legalReviewNote: z.string().trim().min(8).max(2000),
+        effectiveDate: z.string().min(1),
+      }).parse(req.body);
+      const effectiveDate = new Date(payload.effectiveDate);
+      if (Number.isNaN(effectiveDate.getTime())) {
+        return res.status(400).json({ message: "Enter a valid effective date" });
+      }
+
+      const approvedVersion = await db.transaction(async (tx) => {
+        const [candidate] = await tx.select().from(quotationTermsTemplates)
+          .where(eq(quotationTermsTemplates.id, versionId)).limit(1);
+        if (!candidate) return { error: "not_found" as const };
+        if (candidate.approvalStatus !== "pending_legal_review") return { error: "not_pending" as const };
+
+        await tx.update(quotationTermsTemplates)
+          .set({ isActive: false, approvalStatus: "superseded", updatedAt: new Date() })
+          .where(and(
+            eq(quotationTermsTemplates.templateName, candidate.templateName),
+            eq(quotationTermsTemplates.isActive, true),
+          ));
+        const [approved] = await tx.update(quotationTermsTemplates)
+          .set({
+            approvalStatus: "approved",
+            effectiveDate: payload.effectiveDate,
+            isActive: true,
+            approvedBy: userId,
+            approvedAt: new Date(),
+            legalReviewNote: payload.legalReviewNote,
+            updatedAt: new Date(),
+          })
+          .where(eq(quotationTermsTemplates.id, versionId))
+          .returning();
+        return { approved };
+      });
+
+      if ("error" in approvedVersion) {
+        if (approvedVersion.error === "not_found") return res.status(404).json({ message: "Quotation terms version not found" });
+        return res.status(409).json({ message: "Only a pending-review version can be approved" });
+      }
+      return res.json(approvedVersion.approved);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Confirm legal review, enter a review note, and set the effective date", errors: error.errors });
+      }
+      if ((error as any)?.code === "23505") {
+        return res.status(409).json({ message: "Another version was activated at the same time. Reload and review the current active version." });
+      }
+      console.error("Error approving quotation terms:", error);
+      return res.status(500).json({ message: "Failed to approve quotation terms" });
+    }
+  });
+
+  app.post('/api/admin/quotation-terms/:id/deactivate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      if (!["admin", "super_admin"].includes(user?.role || "")) {
+        return res.status(403).json({ message: "Administrator access required" });
+      }
+      const versionId = Number(req.params.id);
+      if (!Number.isInteger(versionId) || versionId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation terms version" });
+      }
+      const [version] = await db.update(quotationTermsTemplates)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(
+          eq(quotationTermsTemplates.id, versionId),
+          eq(quotationTermsTemplates.isActive, true),
+          eq(quotationTermsTemplates.approvalStatus, "approved"),
+        ))
+        .returning();
+      if (!version) return res.status(404).json({ message: "No active approved version was found" });
+      return res.json(version);
+    } catch (error) {
+      console.error("Error deactivating quotation terms:", error);
+      return res.status(500).json({ message: "Failed to deactivate quotation terms" });
+    }
+  });
+
   // Get quotations with role-based filtering
   app.get('/api/quotations', isAuthenticated, async (req: any, res) => {
     try {
@@ -3691,7 +3943,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
       }
 
-      return res.json({ ...quotation, items, inquiry });
+      const termsAcceptances = await db.select()
+        .from(quotationTermsAcceptances)
+        .where(eq(quotationTermsAcceptances.quotationId, quotationId))
+        .orderBy(desc(quotationTermsAcceptances.acceptedAt));
+
+      return res.json({ ...quotation, items, inquiry, termsAcceptances });
     } catch (error) {
       console.error("Error fetching quotation details:", error);
       return res.status(500).json({ message: "Failed to fetch quotation details" });
@@ -3770,6 +4027,86 @@ If you didn't request a password reset, you can safely ignore this email. Your p
     }
   });
   
+  app.delete('/api/quotations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const quotationId = Number(req.params.id);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation ID" });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const [quotation] = await tx.select()
+          .from(quotations)
+          .where(eq(quotations.id, quotationId))
+          .for("update");
+        if (!quotation) return { kind: "not_found" as const };
+
+        const isAdmin = user.role === "admin" || user.role === "super_admin";
+        if (!isAdmin) {
+          if (!user.role?.includes("sales")) return { kind: "forbidden" as const };
+
+          if (quotation.inquiryId) {
+            const [inquiry] = await tx.select({ assignedTo: inquiries.assignedTo })
+              .from(inquiries)
+              .where(eq(inquiries.id, quotation.inquiryId))
+              .for("update");
+            if (inquiry?.assignedTo !== userId) return { kind: "forbidden" as const };
+          } else if (quotation.createdBy !== userId) {
+            return { kind: "forbidden" as const };
+          }
+        }
+
+        if (quotation.status !== "draft" || quotation.sentAt) {
+          return { kind: "not_draft" as const };
+        }
+
+        if (quotation.salesOrderId) return { kind: "linked_record" as const };
+        const [linkedSalesOrder] = await tx.select({ id: salesOrders.id })
+          .from(salesOrders)
+          .where(eq(salesOrders.quotationId, quotationId))
+          .limit(1);
+        if (linkedSalesOrder) return { kind: "linked_record" as const };
+
+        const [acceptance] = await tx.select({ id: quotationTermsAcceptances.id })
+          .from(quotationTermsAcceptances)
+          .where(eq(quotationTermsAcceptances.quotationId, quotationId))
+          .limit(1);
+        if (acceptance) return { kind: "linked_record" as const };
+
+        await tx.delete(quotationItems)
+          .where(eq(quotationItems.quotationId, quotationId));
+        const [deleted] = await tx.delete(quotations)
+          .where(and(
+            eq(quotations.id, quotationId),
+            eq(quotations.status, "draft"),
+          ))
+          .returning({ id: quotations.id });
+        if (!deleted) throw new Error("Draft quotation changed while it was being deleted");
+
+        return { kind: "deleted" as const, id: deleted.id, quotationId: quotation.quotationId };
+      });
+
+      if (result.kind === "not_found") return res.status(404).json({ message: "Quotation not found" });
+      if (result.kind === "forbidden") {
+        return res.status(403).json({ message: "You can only delete quotations assigned to you" });
+      }
+      if (result.kind === "not_draft") {
+        return res.status(409).json({ message: "Only unsent draft quotations can be deleted" });
+      }
+      if (result.kind === "linked_record") {
+        return res.status(409).json({ message: "This quotation is linked to an acceptance record or sales order and cannot be deleted" });
+      }
+      return res.json({ success: true, id: result.id, quotationId: result.quotationId });
+    } catch (error) {
+      console.error("Error deleting draft quotation:", error);
+      return res.status(500).json({ message: "Failed to delete draft quotation" });
+    }
+  });
+
   // Get sales metrics for dashboard (weekly stats, totals)
   app.get('/api/sales-metrics', isAuthenticated, async (req: any, res) => {
     try {
@@ -3914,6 +4251,9 @@ If you didn't request a password reset, you can safely ignore this email. Your p
           message: "This inquiry is not linked to a customer login, so it cannot be published to the customer dashboard."
         });
       }
+      const termsTemplateForIssue = req.body.status === "sent"
+        ? await getActiveQuotationTermsTemplate()
+        : undefined;
       
       // Convert string date to Date object if needed
       const processedData = {
@@ -3929,6 +4269,12 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       delete processedData.items;
       
       const quotationData = insertQuotationSchema.parse(processedData);
+      const quotationDataWithTerms = {
+        ...quotationData,
+        termsTemplateId: termsTemplateForIssue?.id ?? null,
+        termsTemplateVersion: termsTemplateForIssue?.version ?? null,
+        termsTemplateSnapshot: termsTemplateForIssue?.termsText ?? null,
+      };
       console.log("Parsed quotation data:", quotationData);
       console.log("Quotation items count:", items.length);
       
@@ -3936,7 +4282,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         const quotationId = `QUO${Date.now()}`;
         const [createdQuotation] = await tx
           .insert(quotations)
-          .values({ ...quotationData, quotationId })
+          .values({ ...quotationDataWithTerms, quotationId })
           .returning();
 
         if (items.length > 0) {
@@ -3970,6 +4316,320 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       }
       console.error("Error creating quotation:", error);
       res.status(500).json({ message: "Failed to create quotation" });
+    }
+  });
+
+  // Super-admin-only, versioned visual settings for customer quotation PDFs.
+  app.get('/api/admin/quotation-pdf-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+
+      const versions = await db.select()
+        .from(quotationPdfTemplates)
+        .where(eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME))
+        .orderBy(desc(quotationPdfTemplates.createdAt), desc(quotationPdfTemplates.id));
+      return res.json({
+        versions,
+        activeVersion: versions.find((version) => version.isActive) || null,
+        defaultSettings: DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS,
+      });
+    } catch (error) {
+      console.error("Error fetching quotation PDF format versions:", error);
+      return res.status(500).json({ message: "Failed to load quotation PDF formats" });
+    }
+  });
+
+  app.post('/api/admin/quotation-pdf-templates/initial', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+
+      const created = await db.transaction(async (tx) => {
+        const [existing] = await tx.select({ id: quotationPdfTemplates.id })
+          .from(quotationPdfTemplates)
+          .where(eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME))
+          .limit(1);
+        if (existing) return null;
+
+        const now = new Date();
+        const [version] = await tx.insert(quotationPdfTemplates).values({
+          templateName: QUOTATION_PDF_TEMPLATE_NAME,
+          version: "1.0",
+          status: "active",
+          settings: DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS,
+          revisionNotes: "Registered the existing Atlas quotation format as the initial managed version.",
+          isActive: true,
+          createdBy: user.id,
+          activatedBy: user.id,
+          activatedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        }).returning();
+
+        if (version) {
+          await tx.update(quotations)
+            .set({
+              pdfTemplateId: version.id,
+              pdfTemplateVersion: version.version,
+              pdfTemplateSnapshot: DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS,
+              updatedAt: now,
+            })
+            .where(and(
+              isNull(quotations.pdfTemplateSnapshot),
+              or(ne(quotations.status, "draft"), isNotNull(quotations.sentAt)),
+            ));
+        }
+        return version || null;
+      });
+
+      if (!created) {
+        return res.status(409).json({ message: "The initial quotation PDF format has already been registered" });
+      }
+      return res.status(201).json(created);
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ message: "A quotation PDF format version was created at the same time. Refresh and try again." });
+      }
+      console.error("Error registering initial quotation PDF format:", error);
+      return res.status(500).json({ message: "Failed to register the current quotation PDF format" });
+    }
+  });
+
+  app.post('/api/admin/quotation-pdf-templates/:id/revisions', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+      const baseId = Number(req.params.id);
+      if (!Number.isInteger(baseId) || baseId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation PDF format version" });
+      }
+      const requestSchema = z.object({
+        revisionNotes: z.string().trim().max(1000).optional(),
+      }).strict();
+      const parsed = requestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid revision notes" });
+      }
+
+      const [base] = await db.select()
+        .from(quotationPdfTemplates)
+        .where(and(
+          eq(quotationPdfTemplates.id, baseId),
+          eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME),
+        ))
+        .limit(1);
+      if (!base) return res.status(404).json({ message: "Quotation PDF format version not found" });
+      if (!base.isActive || base.status !== "active") {
+        return res.status(409).json({ message: "Create a new version from the currently active quotation format" });
+      }
+
+      const [latest] = await db.select()
+        .from(quotationPdfTemplates)
+        .where(eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME))
+        .orderBy(desc(quotationPdfTemplates.createdAt), desc(quotationPdfTemplates.id))
+        .limit(1);
+      const parsedVersion = latest?.version.match(/^(\d+)\.(\d+)$/);
+      if (!parsedVersion) {
+        return res.status(409).json({ message: "The latest version number cannot be advanced safely" });
+      }
+      const [revision] = await db.insert(quotationPdfTemplates).values({
+        templateName: QUOTATION_PDF_TEMPLATE_NAME,
+        version: `${parsedVersion[1]}.${Number(parsedVersion[2]) + 1}`,
+        status: "draft",
+        settings: base.settings,
+        revisionNotes: parsed.data.revisionNotes || `Revision based on version ${base.version}`,
+        isActive: false,
+        createdBy: user.id,
+      }).returning();
+      return res.status(201).json(revision);
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ message: "Another quotation PDF revision was saved at the same time. Refresh and try again." });
+      }
+      console.error("Error creating quotation PDF format revision:", error);
+      return res.status(500).json({ message: "Failed to create quotation PDF format revision" });
+    }
+  });
+
+  app.put('/api/admin/quotation-pdf-templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+      const versionId = Number(req.params.id);
+      if (!Number.isInteger(versionId) || versionId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation PDF format version" });
+      }
+      const requestSchema = z.object({
+        settings: quotationPdfTemplateSettingsSchema,
+        revisionNotes: z.string().trim().max(1000).optional(),
+      }).strict();
+      const parsed = requestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid quotation PDF format settings" });
+      }
+
+      const [updated] = await db.update(quotationPdfTemplates)
+        .set({
+          settings: parsed.data.settings,
+          revisionNotes: parsed.data.revisionNotes,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(quotationPdfTemplates.id, versionId),
+          eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME),
+          eq(quotationPdfTemplates.status, "draft"),
+          eq(quotationPdfTemplates.isActive, false),
+        ))
+        .returning();
+      if (!updated) {
+        return res.status(409).json({ message: "Only an inactive draft version can be edited" });
+      }
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error updating quotation PDF format draft:", error);
+      return res.status(500).json({ message: "Failed to update quotation PDF format draft" });
+    }
+  });
+
+  app.post('/api/admin/quotation-pdf-templates/preview', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+      const parsed = quotationPdfTemplateSettingsSchema.safeParse(req.body?.settings);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid quotation PDF format settings" });
+      }
+
+      const { generateQuotationPDF } = await import("./pdf-generator");
+      const issuedAt = new Date();
+      const validUntil = new Date(issuedAt);
+      validUntil.setDate(validUntil.getDate() + 30);
+      const previewPdf = await generateQuotationPDF({
+        id: 0,
+        quotationId: "PREVIEW-001",
+        quotationDate: issuedAt.toISOString(),
+        validUntil: validUntil.toISOString(),
+        productName: "Organic Turmeric Powder",
+        quantity: "1000",
+        unit: "kg",
+        unitPrice: "12.50",
+        totalAmount: "12500.00",
+        subtotal: "12500.00",
+        currency: "USD",
+        terms: "Payment Terms: 30 days net\nDelivery Terms: Ex-Works\nQuality as per specifications",
+        paymentTerms: "30 days net",
+        deliveryTerms: "Ex-Works",
+        leadTime: "2-3 weeks",
+        generalTermsVersion: "1.0",
+        generalTermsText: "1. QUALITY AND SPECIFICATIONS\nProducts will meet the agreed specification.\n\n2. PACKAGING\nStandard export packaging, subject to the final order.",
+        items: [{
+          productName: "Organic Turmeric Powder",
+          quantity: "1000",
+          unit: "kg",
+          unitPrice: "12.50",
+          totalPrice: "12500.00",
+          specifications: "Sample preview item",
+        }],
+      }, {
+        name: "Sample Customer",
+        contactPerson: "Sample Contact",
+        email: "customer@example.com",
+        companyName: "Sample Foods Ltd.",
+        phone: "+1 555 0100",
+        address: "100 Example Road",
+        city: "London",
+        country: "United Kingdom",
+        postalCode: "SW1A 1AA",
+        salesPersonName: user.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "Atlas Sales Team",
+      }, parsed.data);
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", 'inline; filename="quotation-format-preview.pdf"');
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(previewPdf);
+    } catch (error) {
+      console.error("Error generating quotation PDF format preview:", error);
+      return res.status(500).json({ message: "Failed to generate quotation PDF format preview" });
+    }
+  });
+
+  app.post('/api/admin/quotation-pdf-templates/:id/activate', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await requireQuotationPdfTemplateSuperAdmin(req, res);
+      if (!user) return;
+      const versionId = Number(req.params.id);
+      if (!Number.isInteger(versionId) || versionId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation PDF format version" });
+      }
+
+      const activation = await db.transaction(async (tx) => {
+        const [candidate] = await tx.select()
+          .from(quotationPdfTemplates)
+          .where(and(
+            eq(quotationPdfTemplates.id, versionId),
+            eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME),
+          ))
+          .limit(1);
+        if (!candidate) return { error: "not_found" as const };
+        if (candidate.status !== "draft" || candidate.isActive) return { error: "not_draft" as const };
+
+        const [current] = await tx.select()
+          .from(quotationPdfTemplates)
+          .where(and(
+            eq(quotationPdfTemplates.templateName, candidate.templateName),
+            eq(quotationPdfTemplates.isActive, true),
+          ))
+          .limit(1);
+        const now = new Date();
+        const historicalSettings = current?.settings || DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS;
+        await tx.update(quotations)
+          .set({
+            pdfTemplateId: current?.id ?? null,
+            pdfTemplateVersion: current?.version ?? "1.0",
+            pdfTemplateSnapshot: historicalSettings,
+            updatedAt: now,
+          })
+          .where(and(
+            isNull(quotations.pdfTemplateSnapshot),
+            or(ne(quotations.status, "draft"), isNotNull(quotations.sentAt)),
+          ));
+
+        await tx.update(quotationPdfTemplates)
+          .set({ status: "superseded", isActive: false, updatedAt: now })
+          .where(and(
+            eq(quotationPdfTemplates.templateName, candidate.templateName),
+            eq(quotationPdfTemplates.isActive, true),
+          ));
+
+        const [activated] = await tx.update(quotationPdfTemplates)
+          .set({
+            status: "active",
+            isActive: true,
+            activatedBy: user.id,
+            activatedAt: now,
+            updatedAt: now,
+          })
+          .where(and(
+            eq(quotationPdfTemplates.id, versionId),
+            eq(quotationPdfTemplates.status, "draft"),
+            eq(quotationPdfTemplates.isActive, false),
+          ))
+          .returning();
+        return activated ? { activated } : { error: "not_draft" as const };
+      });
+
+      if ("error" in activation) {
+        if (activation.error === "not_found") return res.status(404).json({ message: "Quotation PDF format version not found" });
+        return res.status(409).json({ message: "Only a draft quotation PDF format can be activated" });
+      }
+      return res.json(activation.activated);
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ message: "Another quotation PDF version was activated at the same time. Refresh and try again." });
+      }
+      console.error("Error activating quotation PDF format:", error);
+      return res.status(500).json({ message: "Failed to activate quotation PDF format" });
     }
   });
 
@@ -4026,13 +4686,55 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         });
       }
 
+      const termsTemplateForIssue = quotation.termsTemplateSnapshot?.trim()
+        ? undefined
+        : await getActiveQuotationTermsTemplate();
+      const termsSnapshotFields = quotation.termsTemplateSnapshot?.trim()
+        ? {
+            termsTemplateId: quotation.termsTemplateId,
+            termsTemplateVersion: quotation.termsTemplateVersion,
+            termsTemplateSnapshot: quotation.termsTemplateSnapshot,
+          }
+        : termsTemplateForIssue
+          ? {
+              termsTemplateId: termsTemplateForIssue.id,
+              termsTemplateVersion: termsTemplateForIssue.version,
+              termsTemplateSnapshot: termsTemplateForIssue.termsText,
+            }
+          : {};
+
       const publishedQuotation = await db.transaction(async (tx) => {
+        const activePdfTemplateRows = quotation.pdfTemplateSnapshot
+          ? []
+          : await tx.select()
+              .from(quotationPdfTemplates)
+              .where(and(
+                eq(quotationPdfTemplates.templateName, QUOTATION_PDF_TEMPLATE_NAME),
+                eq(quotationPdfTemplates.isActive, true),
+              ))
+              .for("update")
+              .limit(1);
+        const activePdfTemplate = activePdfTemplateRows[0];
+        const pdfTemplateSnapshotFields = quotation.pdfTemplateSnapshot
+          ? {
+              pdfTemplateId: quotation.pdfTemplateId,
+              pdfTemplateVersion: quotation.pdfTemplateVersion,
+              pdfTemplateSnapshot: quotation.pdfTemplateSnapshot,
+            }
+          : {
+              pdfTemplateId: activePdfTemplate?.id ?? null,
+              pdfTemplateVersion: activePdfTemplate?.version ?? "1.0",
+              pdfTemplateSnapshot: activePdfTemplate?.settings ?? DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS,
+            };
+
         const [updatedQuotation] = await tx.update(quotations)
           .set({
             status: "sent",
             customerId,
             sentAt: new Date(),
             sentBy: userId,
+            ...termsSnapshotFields,
+            ...pdfTemplateSnapshotFields,
             updatedAt: new Date()
           })
           .where(and(eq(quotations.id, quotationId), eq(quotations.status, "draft")))
@@ -4106,10 +4808,29 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         return res.status(409).json({ message: "Only sent quotations can be accepted" });
       }
 
-      const quotation = await storage.updateQuotation(quotationId, {
-        status: 'accepted',
-        customerId,
+      const acceptedAt = new Date();
+      const [quotation] = await db.transaction(async (tx) => {
+        const [updatedQuotation] = await tx.update(quotations)
+          .set({ status: "accepted", customerId, updatedAt: acceptedAt })
+          .where(and(eq(quotations.id, quotationId), eq(quotations.status, "sent")))
+          .returning();
+        if (!updatedQuotation) return [undefined];
+        await tx.insert(quotationTermsAcceptances).values({
+          quotationId,
+          customerId,
+          customerCompanyName: updatedQuotation.customerCompanyName || null,
+          termsTemplateId: updatedQuotation.termsTemplateId || null,
+          termsTemplateVersion: updatedQuotation.termsTemplateVersion || null,
+          acceptedAt,
+          acceptanceMethod: "customer_dashboard",
+          supportingEvidence: null,
+          recordedByUserId: customerId,
+        });
+        return [updatedQuotation];
       });
+      if (!quotation) {
+        return res.status(409).json({ message: "This quotation has already been accepted or is no longer available" });
+      }
       
       // If this quotation is linked to a high volume bid, update the bid status
       if (quotation.inquiryId) {
@@ -4445,6 +5166,64 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         }
       }
 
+      let generalTermsText = quotation.termsTemplateSnapshot || null;
+      let generalTermsVersion = quotation.termsTemplateVersion || null;
+      // Freeze the currently approved wording when a draft is first previewed.
+      // Legacy sent quotations are intentionally not retroactively changed.
+      if (!generalTermsText?.trim() && quotation.status === "draft") {
+        const activeTerms = await getActiveQuotationTermsTemplate();
+        if (activeTerms) {
+          const [frozenQuote] = await db.update(quotations)
+            .set({
+              termsTemplateId: activeTerms.id,
+              termsTemplateVersion: activeTerms.version,
+              termsTemplateSnapshot: activeTerms.termsText,
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(quotations.id, quotation.id),
+              isNull(quotations.termsTemplateSnapshot),
+            ))
+            .returning();
+          generalTermsText = frozenQuote?.termsTemplateSnapshot || activeTerms.termsText;
+          generalTermsVersion = frozenQuote?.termsTemplateVersion || activeTerms.version;
+        }
+      }
+
+      let pdfTemplateSettings = quotation.pdfTemplateSnapshot || null;
+      if (!pdfTemplateSettings) {
+        const activePdfTemplate = await getActiveQuotationPdfTemplate();
+        pdfTemplateSettings = activePdfTemplate?.settings || DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS;
+        // Existing issued quotations get a stable layout snapshot on first download;
+        // draft previews continue to follow the active format until they are issued.
+        if (quotation.status !== "draft") {
+          const [frozenQuote] = await db.update(quotations)
+            .set({
+              pdfTemplateId: activePdfTemplate?.id ?? null,
+              pdfTemplateVersion: activePdfTemplate?.version ?? "1.0",
+              pdfTemplateSnapshot: pdfTemplateSettings,
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(quotations.id, quotation.id),
+              isNull(quotations.pdfTemplateSnapshot),
+            ))
+            .returning();
+          if (frozenQuote?.pdfTemplateSnapshot) {
+            pdfTemplateSettings = frozenQuote.pdfTemplateSnapshot;
+          } else {
+            const [latestQuote] = await db.select({
+              pdfTemplateSnapshot: quotations.pdfTemplateSnapshot,
+            }).from(quotations).where(eq(quotations.id, quotation.id)).limit(1);
+            pdfTemplateSettings = latestQuote?.pdfTemplateSnapshot || pdfTemplateSettings;
+          }
+        }
+      }
+      const validatedPdfSettings = quotationPdfTemplateSettingsSchema.safeParse(pdfTemplateSettings);
+      if (!validatedPdfSettings.success) {
+        return res.status(500).json({ message: "The saved quotation PDF format snapshot is invalid" });
+      }
+
       // Fetch quotation items
       const quotationItemsResult = await db
         .select()
@@ -4588,6 +5367,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
             unit: item.unit || 'kg',
             unitPrice: item.unitPrice || '0',
             totalPrice: item.totalPrice || String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
+            specifications: item.specifications || null,
           }))
         : undefined;
 
@@ -4604,6 +5384,8 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         totalAmount: quotation.totalAmount,
         currency: quotation.currency,
         terms: quotation.terms,
+        generalTermsText,
+        generalTermsVersion,
         notes: quotation.notes,
         paymentTerms: quotation.paymentTerms || 'As per agreement',
         deliveryTerms: quotation.deliveryTerms || quotation.priceType || 'Ex-Works',
@@ -4631,7 +5413,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       };
 
       // Generate PDF
-      const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
+      const pdfBuffer = await generateQuotationPDF(quotationData, customerData, validatedPdfSettings.data);
       
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -12924,8 +13706,30 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
               unitPrice: item.unitPrice || '0',
               totalPrice: item.totalPrice ||
                 String(parseFloat(item.quantity || '0') * parseFloat(item.unitPrice || '0')),
+              specifications: item.specifications || null,
             }))
           : undefined;
+        let generalTermsText = quotation.termsTemplateSnapshot || null;
+        let generalTermsVersion = quotation.termsTemplateVersion || null;
+        if (!generalTermsText?.trim() && quotation.status === "draft") {
+          const activeTerms = await getActiveQuotationTermsTemplate();
+          if (activeTerms) {
+            const [frozenQuote] = await db.update(quotations)
+              .set({
+                termsTemplateId: activeTerms.id,
+                termsTemplateVersion: activeTerms.version,
+                termsTemplateSnapshot: activeTerms.termsText,
+                updatedAt: new Date(),
+              })
+              .where(and(
+                eq(quotations.id, quotation.id),
+                isNull(quotations.termsTemplateSnapshot),
+              ))
+              .returning();
+            generalTermsText = frozenQuote?.termsTemplateSnapshot || activeTerms.termsText;
+            generalTermsVersion = frozenQuote?.termsTemplateVersion || activeTerms.version;
+          }
+        }
         const quotationData = {
           id: quotation.id,
           quotationId: quotation.quotationId,
@@ -12938,6 +13742,8 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           totalAmount,
           currency: quotation.currency || 'USD',
           terms: quotation.terms || '',
+          generalTermsText,
+          generalTermsVersion,
           notes: quotation.notes || '',
           paymentTerms: quotation.paymentTerms || 'As per agreement',
           deliveryTerms: quotation.priceType || 'Ex-Works',
@@ -12963,7 +13769,34 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
           countryOfSupply: quotation.countryOfSupply || undefined,
           items: pdfItems,
         };
-        const pdfBuffer = await generateQuotationPDF(quotationData, customerData);
+        const activePdfTemplate = quotation.pdfTemplateSnapshot
+          ? null
+          : await getActiveQuotationPdfTemplate();
+        let pdfTemplateSettings = quotation.pdfTemplateSnapshot
+          || activePdfTemplate?.settings
+          || DEFAULT_QUOTATION_PDF_TEMPLATE_SETTINGS;
+        if (!quotation.pdfTemplateSnapshot && quotation.status !== "draft") {
+          const [frozenQuote] = await db.update(quotations)
+            .set({
+              pdfTemplateId: activePdfTemplate?.id ?? null,
+              pdfTemplateVersion: activePdfTemplate?.version ?? "1.0",
+              pdfTemplateSnapshot: pdfTemplateSettings,
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(quotations.id, quotation.id),
+              isNull(quotations.pdfTemplateSnapshot),
+            ))
+            .returning();
+          if (frozenQuote?.pdfTemplateSnapshot) {
+            pdfTemplateSettings = frozenQuote.pdfTemplateSnapshot;
+          }
+        }
+        const validatedPdfSettings = quotationPdfTemplateSettingsSchema.safeParse(pdfTemplateSettings);
+        if (!validatedPdfSettings.success) {
+          return res.status(500).json({ message: "The saved quotation PDF format snapshot is invalid" });
+        }
+        const pdfBuffer = await generateQuotationPDF(quotationData, customerData, validatedPdfSettings.data);
         attachments.push({
           base64Data: pdfBuffer.toString('base64'),
           mimeType: 'application/pdf',

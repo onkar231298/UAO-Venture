@@ -787,6 +787,64 @@ export const sampleRequests = pgTable("sample_requests", {
   leadIdIdx: index("sample_requests_lead_id_idx").on(table.leadId),
 }));
 
+// Versioned General Terms & Conditions used by sales quotations.
+// Template content is immutable per version; approval/activation is tracked here.
+export const quotationTermsTemplates = pgTable("quotation_terms_templates", {
+  id: serial("id").primaryKey(),
+  templateName: varchar("template_name", { length: 255 }).notNull().default("General Terms & Conditions of Sale"),
+  version: varchar("version", { length: 30 }).notNull(),
+  effectiveDate: date("effective_date"),
+  approvalStatus: varchar("approval_status", { length: 40 }).notNull().default("pending_legal_review"),
+  termsText: text("terms_text").notNull(),
+  revisionNotes: text("revision_notes"),
+  supersedesId: integer("supersedes_id"),
+  isActive: boolean("is_active").notNull().default(false),
+  createdBy: varchar("created_by").references(() => users.id),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  legalReviewNote: text("legal_review_note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("quotation_terms_template_name_version_uq").on(table.templateName, table.version),
+  uniqueIndex("quotation_terms_one_active_version_uq")
+    .on(table.templateName)
+    .where(sql`${table.isActive} = true`),
+  index("quotation_terms_template_active_idx").on(table.isActive),
+  index("quotation_terms_template_status_idx").on(table.approvalStatus),
+]);
+
+export interface QuotationPdfTemplateSettings {
+  documentTitle: string;
+  sectionHeading: string;
+  forestColor: string;
+  greenColor: string;
+  goldColor: string;
+}
+
+// Versioned visual settings for generated sales quotation PDFs.
+export const quotationPdfTemplates = pgTable("quotation_pdf_templates", {
+  id: serial("id").primaryKey(),
+  templateName: varchar("template_name", { length: 255 }).notNull().default("Atlas Ingredients Quotation"),
+  version: varchar("version", { length: 30 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("draft"),
+  settings: jsonb("settings").$type<QuotationPdfTemplateSettings>().notNull(),
+  revisionNotes: text("revision_notes"),
+  isActive: boolean("is_active").notNull().default(false),
+  createdBy: varchar("created_by").references(() => users.id),
+  activatedBy: varchar("activated_by").references(() => users.id),
+  activatedAt: timestamp("activated_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("quotation_pdf_template_name_version_uq").on(table.templateName, table.version),
+  uniqueIndex("quotation_pdf_template_one_active_uq")
+    .on(table.templateName)
+    .where(sql`${table.isActive} = true`),
+  index("quotation_pdf_template_status_idx").on(table.status),
+  index("quotation_pdf_template_active_idx").on(table.isActive),
+]);
+
 // Quotations
 export const quotations = pgTable("quotations", {
   id: serial("id").primaryKey(),
@@ -799,6 +857,13 @@ export const quotations = pgTable("quotations", {
   priceType: varchar("price_type", { length: 50 }).default("ex_warehouse"), // ex_warehouse, ex_works, fob, cif, etc.
   status: varchar("status", { length: 50 }).default("draft"), // draft, sent, accepted, rejected, expired
   terms: text("terms"),
+  // Frozen version and text ensure a previously issued quote remains reproducible.
+  termsTemplateId: integer("terms_template_id").references(() => quotationTermsTemplates.id),
+  termsTemplateVersion: varchar("terms_template_version", { length: 30 }),
+  termsTemplateSnapshot: text("terms_template_snapshot"),
+  pdfTemplateId: integer("pdf_template_id").references(() => quotationPdfTemplates.id),
+  pdfTemplateVersion: varchar("pdf_template_version", { length: 30 }),
+  pdfTemplateSnapshot: jsonb("pdf_template_snapshot").$type<QuotationPdfTemplateSettings>(),
   notes: text("notes"),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
@@ -858,6 +923,24 @@ export const quotationItems = pgTable("quotation_items", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
   specifications: text("specifications"),
 });
+
+// Audit record created only when a customer explicitly accepts a quotation.
+export const quotationTermsAcceptances = pgTable("quotation_terms_acceptances", {
+  id: serial("id").primaryKey(),
+  quotationId: integer("quotation_id").notNull().references(() => quotations.id),
+  customerId: varchar("customer_id").references(() => users.id),
+  customerCompanyName: varchar("customer_company_name", { length: 255 }),
+  termsTemplateId: integer("terms_template_id").references(() => quotationTermsTemplates.id),
+  termsTemplateVersion: varchar("terms_template_version", { length: 30 }),
+  acceptedAt: timestamp("accepted_at").notNull().defaultNow(),
+  acceptanceMethod: varchar("acceptance_method", { length: 100 }).notNull(),
+  supportingEvidence: text("supporting_evidence"),
+  recordedByUserId: varchar("recorded_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("quotation_terms_acceptance_quotation_idx").on(table.quotationId),
+  index("quotation_terms_acceptance_customer_idx").on(table.customerId),
+]);
 
 // Sales Order Status Types
 export const SALES_ORDER_STATUSES = [
@@ -1316,6 +1399,9 @@ export const insertProductDocumentSchema = createInsertSchema(productDocuments).
 export const insertQuotationSchema = createInsertSchema(quotations).omit({
   id: true,
   quotationId: true,
+  termsTemplateId: true,
+  termsTemplateVersion: true,
+  termsTemplateSnapshot: true,
   createdAt: true,
   updatedAt: true,
 });

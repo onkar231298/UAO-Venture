@@ -811,7 +811,7 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'settings' && (
-            <SystemSettings />
+            <SystemSettings canManagePdfTemplates={adminUser?.role === "super_admin"} />
           )}
 
           {activeSection === 'hr-management' && (

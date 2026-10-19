@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send, Download } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Users, Package, Plus, Eye, FileText, Mail, Phone, Clock, User, Building, MapPin, UserPlus, CheckCircle2, RefreshCw, XCircle, Send, Download, Trash2 } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import QuotationForm from "@/components/QuotationForm";
 import InquiryDetailsDialog from "@/components/InquiryDetailsDialog";
@@ -42,7 +42,9 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
   const [quoteDialogInquiryId, setQuoteDialogInquiryId] = useState<number | null>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const [downloadingInquiryQuotationId, setDownloadingInquiryQuotationId] = useState<number | null>(null);
+  const [quotationToDelete, setQuotationToDelete] = useState<any | null>(null);
   const canAssignInquiries = user?.role === "admin" || user?.role === "super_admin";
+  const canManageDraftQuotes = canAssignInquiries || !!user?.role?.startsWith("sales");
 
   // Data fetching
   const { data: inquiries, isLoading: inquiriesLoading } = useQuery({
@@ -50,7 +52,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     enabled: !authLoading && !!user && activeSubSection !== 'sales-crm' && activeSubSection !== 'company-management'
   });
 
-  const { data: salesReps = [] } = useQuery({
+  const {
+    data: salesReps = [],
+    isLoading: salesRepsLoading,
+    isError: salesRepsError,
+    refetch: refetchSalesReps,
+  } = useQuery<any[]>({
     queryKey: ['/api/users/sales-reps'],
     enabled: !authLoading && canAssignInquiries,
     queryFn: async () => {
@@ -138,6 +145,34 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
     onError: (error: Error) => {
       toast({ title: 'Could not assign enquiry', description: error.message, variant: 'destructive' });
     }
+  });
+
+  const deleteQuotationMutation = useMutation({
+    mutationFn: async (quotationId: number) => {
+      const response = await fetch(`/api/quotations/${quotationId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Failed to delete draft quotation");
+      return result as { id: number; quotationId: string };
+    },
+    onSuccess: (deletedQuotation) => {
+      setQuotationToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      toast({
+        title: "Draft quotation deleted",
+        description: `${deletedQuotation.quotationId} and its line items were permanently removed.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Could not delete draft quotation",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const convertToLeadMutation = useMutation({
@@ -569,26 +604,50 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                             {canAssignInquiries && (
                               <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <span className="text-xs text-gray-500 whitespace-nowrap">Assign to</span>
-                                <Select
-                                  value={inquiry.assignedTo || "unassigned"}
-                                  onValueChange={(value) => assignInquiryMutation.mutate({
-                                    inquiryId: inquiry.id,
-                                    assignedTo: value === "unassigned" ? null : value
-                                  })}
-                                  disabled={assignInquiryMutation.isPending || salesReps.length === 0}
-                                >
-                                  <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
-                                    <SelectValue placeholder="Unassigned" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {salesReps.map((rep: any) => (
-                                      <SelectItem key={rep.id} value={rep.id}>
-                                        {[rep.firstName, rep.lastName].filter(Boolean).join(' ') || rep.email}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {salesRepsLoading ? (
+                                  <span className="text-sm text-muted-foreground">Loading sales reps…</span>
+                                ) : salesRepsError ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-destructive">Could not load sales reps.</span>
+                                    <Button variant="outline" size="sm" onClick={() => void refetchSalesReps()}>
+                                      Retry
+                                    </Button>
+                                  </div>
+                                ) : salesReps.length === 0 ? (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">
+                                      No active sales reps. Add or activate a Sales Executive or Sales Manager first.
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => window.location.assign("/admin?section=users")}
+                                    >
+                                      Open User Management
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={inquiry.assignedTo || "unassigned"}
+                                    onValueChange={(value) => assignInquiryMutation.mutate({
+                                      inquiryId: inquiry.id,
+                                      assignedTo: value === "unassigned" ? null : value
+                                    })}
+                                    disabled={assignInquiryMutation.isPending}
+                                  >
+                                    <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
+                                      <SelectValue placeholder="Unassigned" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                                      {salesReps.map((rep: any) => (
+                                        <SelectItem key={rep.id} value={rep.id}>
+                                          {[rep.firstName, rep.lastName].filter(Boolean).join(' ') || rep.email}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
                               </div>
                             )}
                             <Button 
@@ -661,6 +720,24 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                   Edit Quote
                                 </Button>
                               )}
+                              {canManageDraftQuotes &&
+                                relatedQuotation?.status === "draft" &&
+                                !relatedQuotation.sentAt &&
+                                !relatedQuotation.salesOrderId && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setQuotationToDelete(relatedQuotation)}
+                                    disabled={deleteQuotationMutation.isPending}
+                                    data-testid={`button-delete-inquiry-quotation-${inquiry.id}`}
+                                    aria-label={`Delete draft quotation ${relatedQuotation.quotationId}`}
+                                    title="Permanently delete this unsent draft"
+                                    className="min-h-[44px] w-full sm:w-auto text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete Draft
+                                  </Button>
+                                )}
                             {!inquiry.crmLeadId && (
                               <Button 
                                 variant="default"
@@ -766,6 +843,37 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
               data-testid="button-confirm-convert-lead"
             >
               {convertToLeadMutation.isPending ? 'Converting...' : 'Convert to Lead'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={quotationToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleteQuotationMutation.isPending) setQuotationToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this draft quotation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{quotationToDelete?.quotationId}</strong> and its line items.
+              Only unsent drafts can be deleted. Sent, accepted, or sales-order-linked quotations remain protected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteQuotationMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteQuotationMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (quotationToDelete) deleteQuotationMutation.mutate(quotationToDelete.id);
+              }}
+              data-testid="button-confirm-delete-draft-quotation"
+            >
+              {deleteQuotationMutation.isPending ? "Deleting…" : "Delete draft"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

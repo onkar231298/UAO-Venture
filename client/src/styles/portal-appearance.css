@@ -152,26 +152,29 @@
 
 .portal-appearance__palette {
   min-width: 0;
-  min-height: 112px;
-  padding: 11px 11px 10px;
+  min-height: 122px;
+  padding: 12px 12px 11px;
   appearance: none;
-  border: 1px solid var(--appearance-border);
-  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--palette-accent) 24%, var(--appearance-border));
+  border-top: 3px solid var(--palette-accent);
+  border-radius: 11px;
   background: var(--appearance-surface);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .portal-appearance__palette:hover {
-  border-color: var(--appearance-accent);
-  transform: translateY(-1px);
+  border-color: var(--palette-accent);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--palette-accent) 12%, transparent);
+  transform: translateY(-2px);
 }
 
 .portal-appearance__palette.is-selected {
-  border-color: var(--appearance-accent);
-  box-shadow: 0 0 0 1px var(--appearance-accent);
+  border-color: var(--palette-accent);
+  background: color-mix(in srgb, var(--palette-accent) 5%, var(--appearance-surface));
+  box-shadow: 0 0 0 1px var(--palette-accent), 0 8px 20px color-mix(in srgb, var(--palette-accent) 13%, transparent);
 }
 
 .portal-appearance__palette-top {
@@ -196,7 +199,7 @@
   height: 18px;
   flex: 0 0 18px;
   place-items: center;
-  border: 1px solid var(--appearance-border);
+  border: 1px solid color-mix(in srgb, var(--palette-accent) 42%, var(--appearance-border));
   border-radius: 50%;
   color: var(--appearance-surface);
 }
@@ -208,24 +211,25 @@
 
 .portal-appearance__palette-description {
   display: block;
-  min-height: 28px;
-  margin-top: 4px;
+  min-height: 30px;
+  margin-top: 5px;
   color: var(--appearance-muted);
-  font-size: 10px;
+  font-size: 10.5px;
   line-height: 1.4;
 }
 
 .portal-appearance__swatches {
   display: flex;
-  gap: 4px;
-  margin-top: 9px;
+  gap: 5px;
+  margin-top: 10px;
 }
 
 .portal-appearance__swatches i {
-  width: 17px;
-  height: 17px;
-  border: 1px solid color-mix(in srgb, var(--appearance-ink) 14%, transparent);
-  border-radius: 5px;
+  width: 21px;
+  height: 16px;
+  border: 1px solid color-mix(in srgb, var(--appearance-ink) 18%, transparent);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px color-mix(in srgb, white 18%, transparent);
 }
 
 .portal-appearance__mode-section {
@@ -455,7 +459,7 @@
   }
 
   .portal-appearance__palette {
-    min-height: 104px;
+    min-height: 116px;
   }
 }
 
@@ -473,7 +477,7 @@
   }
 
   .portal-appearance__swatches i {
-    width: 15px;
+    width: 17px;
     height: 15px;
   }
 
