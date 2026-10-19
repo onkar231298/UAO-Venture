@@ -442,8 +442,8 @@ export default function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/about-us", "/our-team", "/our-farmers") ? "is-current" : ""}`}>
-                  About <ChevronDown className="ml-1 h-3 w-3" />
+                <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/about-us", "/our-team", "/our-farmers", "/contact") ? "is-current" : ""}`}>
+                  About Us <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bfo-nav-dropdown w-48 p-2 shadow-xl border border-gray-200" align="start">
@@ -462,11 +462,16 @@ export default function Header() {
                     Our Farmers
                   </DropdownMenuItem>
                 </Link>
+                <Link href="/contact">
+                  <DropdownMenuItem
+                    aria-current={location === "/contact" ? "page" : undefined}
+                    className={`text-sm px-3 py-2 hover:bg-gray-50 cursor-pointer ${location === "/contact" ? "text-green-600 font-medium" : ""}`}
+                  >
+                    Contact
+                  </DropdownMenuItem>
+                </Link>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="/contact" aria-current={location === "/contact" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/contact' ? 'text-green-600 border-green-600 is-current' : ''}`}>
-              Contact
-            </Link>
             <Link href="/certifications" aria-current={location === "/certifications" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/certifications' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Certifications
             </Link>
@@ -847,7 +852,7 @@ export default function Header() {
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100">
                       <Info className="w-4 h-4 text-indigo-600" />
                     </div>
-                    <span className="font-medium">About</span>
+                    <span className="font-medium">About Us</span>
                   </div>
                   <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${mobileAboutOpen ? 'rotate-90' : ''}`} />
                 </CollapsibleTrigger>
@@ -873,23 +878,18 @@ export default function Header() {
                   >
                     → Our Farmers
                   </Link>
+                  <Link
+                    href="/contact"
+                    aria-current={location === "/contact" ? "page" : undefined}
+                    className={`block py-2 text-sm transition-colors ${
+                      location === "/contact" ? "text-green-600 font-medium" : "text-gray-600 hover:text-green-600"
+                    }`}
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    → Contact
+                  </Link>
                 </CollapsibleContent>
               </Collapsible>
-              
-              <Link 
-                href="/contact" 
-                className={`bfo-mobile-link flex items-center space-x-3 py-3 px-3 rounded-lg transition-all duration-200 ${
-                  location === '/contact' 
-                    ? 'text-green-600 bg-green-50 font-medium' 
-                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50'
-                }`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-pink-100">
-                  <Phone className="w-4 h-4 text-pink-600" />
-                </div>
-                <span className="font-medium">Contact</span>
-              </Link>
               
               <Link 
                 href="/certifications" 
