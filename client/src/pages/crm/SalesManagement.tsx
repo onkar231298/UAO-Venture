@@ -603,7 +603,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
                             {canAssignInquiries && (
                               <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <span className="text-xs text-gray-500 whitespace-nowrap">Assign to</span>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">Assign sales rep</span>
                                 {salesRepsLoading ? (
                                   <span className="text-sm text-muted-foreground">Loading sales reps…</span>
                                 ) : salesRepsError ? (
@@ -613,40 +613,37 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                       Retry
                                     </Button>
                                   </div>
-                                ) : salesReps.length === 0 ? (
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">
-                                      No active sales reps. Add or activate a Sales Executive or Sales Manager first.
-                                    </span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => window.location.assign("/admin?section=users")}
-                                    >
-                                      Open User Management
-                                    </Button>
-                                  </div>
                                 ) : (
-                                  <Select
-                                    value={inquiry.assignedTo || "unassigned"}
-                                    onValueChange={(value) => assignInquiryMutation.mutate({
-                                      inquiryId: inquiry.id,
-                                      assignedTo: value === "unassigned" ? null : value
-                                    })}
-                                    disabled={assignInquiryMutation.isPending}
-                                  >
-                                    <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
-                                      <SelectValue placeholder="Unassigned" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                                      {salesReps.map((rep: any) => (
-                                        <SelectItem key={rep.id} value={rep.id}>
-                                          {[rep.firstName, rep.lastName].filter(Boolean).join(' ') || rep.email}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Select
+                                      value={inquiry.assignedTo || ""}
+                                      onValueChange={(value) => assignInquiryMutation.mutate({
+                                        inquiryId: inquiry.id,
+                                        assignedTo: value === "unassigned" ? null : value
+                                      })}
+                                      disabled={assignInquiryMutation.isPending || salesReps.length === 0}
+                                    >
+                                      <SelectTrigger
+                                        aria-label={`Assign sales representative for enquiry ${inquiry.id}`}
+                                        className="w-full sm:w-[220px] min-h-[44px]"
+                                      >
+                                        <SelectValue placeholder="Assign sales rep" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                        {salesReps.map((rep: any) => (
+                                          <SelectItem key={rep.id} value={rep.id}>
+                                            {[rep.firstName, rep.lastName].filter(Boolean).join(' ') || rep.email}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    {salesReps.length === 0 && (
+                                      <span className="text-sm text-muted-foreground">
+                                        No active sales reps available to assign.
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}

@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import Footer from "@/components/Footer";
 
@@ -21,7 +20,6 @@ export default function UnifiedLogin() {
   const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const { loginCustomer } = useCustomerAuth();
 
   // Check for error parameter in URL
@@ -89,8 +87,8 @@ export default function UnifiedLogin() {
           title: "Login Successful!",
           description: `Welcome back, ${result.user.firstName}!`,
         });
-        // Redirect to home page
-        setLocation('/');
+        // Reload so any previously cached staff identity is discarded.
+        window.location.assign('/');
       } else {
         const error = await response.json();
         throw new Error(error.message || "Login failed");

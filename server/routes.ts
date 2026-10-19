@@ -722,36 +722,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const sessionUser = createCustomerSessionUser(customer);
-      req.logIn(sessionUser, (loginError: any) => {
-        if (loginError) {
-          console.error("Customer session could not be established:", loginError);
+      req.session.regenerate((regenerateError: any) => {
+        if (regenerateError) {
+          console.error("Customer session could not be regenerated:", regenerateError);
           return res.status(500).json({ message: "Login failed" });
         }
 
-        req.session.save((saveError: any) => {
-          if (saveError) {
-            console.error("Customer session could not be saved:", saveError);
+        req.logIn(sessionUser, (loginError: any) => {
+          if (loginError) {
+            console.error("Customer session could not be established:", loginError);
             return res.status(500).json({ message: "Login failed" });
           }
 
-          const user = {
-            id: customer.id,
-            email: customer.email,
-            firstName: customer.firstName,
-            lastName: customer.lastName,
-            companyName: customer.companyName,
-            phoneNumber: customer.phoneNumber,
-            streetAddress: customer.streetAddress,
-            city: customer.city,
-            state: customer.state,
-            postalCode: customer.postalCode,
-            country: customer.country,
-            industryType: customer.industryType,
-            accountStatus: customer.accountStatus,
-            createdAt: customer.createdAt,
-            updatedAt: customer.updatedAt,
-          };
-          return res.json({ message: "Login successful", user });
+          req.session.save((saveError: any) => {
+            if (saveError) {
+              console.error("Customer session could not be saved:", saveError);
+              return res.status(500).json({ message: "Login failed" });
+            }
+
+            const user = {
+              id: customer.id,
+              email: customer.email,
+              firstName: customer.firstName,
+              lastName: customer.lastName,
+              companyName: customer.companyName,
+              phoneNumber: customer.phoneNumber,
+              streetAddress: customer.streetAddress,
+              city: customer.city,
+              state: customer.state,
+              postalCode: customer.postalCode,
+              country: customer.country,
+              industryType: customer.industryType,
+              accountStatus: customer.accountStatus,
+              createdAt: customer.createdAt,
+              updatedAt: customer.updatedAt,
+            };
+            return res.json({ message: "Login successful", user });
+          });
         });
       });
     } catch (error) {

@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { LogIn, Mail, Lock, CheckCircle } from "lucide-react";
 import { z } from "zod";
 
@@ -20,7 +20,6 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function CustomerLogin() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
@@ -93,7 +92,7 @@ export default function CustomerLogin() {
             </div>
             
             <Button 
-              onClick={() => setLocation('/')} 
+              onClick={() => window.location.assign('/')}
               className="w-full bg-green-600 hover:bg-green-700"
             >
               Go to Homepage
@@ -102,9 +101,7 @@ export default function CustomerLogin() {
             <Button 
               variant="outline"
               onClick={() => {
-                setLoginSuccess(false);
-                setUserInfo(null);
-                form.reset();
+                window.location.href = '/api/logout';
               }} 
               className="w-full"
             >
