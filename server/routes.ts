@@ -5426,8 +5426,10 @@ If you didn't request a password reset, you can safely ignore this email. Your p
       
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="Quotation-${quotation.quotationId}.pdf"`);
+      const disposition = req.query.view === "1" ? "inline" : "attachment";
+      res.setHeader('Content-Disposition', `${disposition}; filename="Quotation-${quotation.quotationId}.pdf"`);
       res.setHeader('Content-Length', pdfBuffer.length);
+      res.setHeader('Cache-Control', 'private, no-store');
       
       // Send PDF
       res.send(pdfBuffer);

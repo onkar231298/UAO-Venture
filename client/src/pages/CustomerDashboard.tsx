@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Download, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
@@ -1705,7 +1705,7 @@ export default function CustomerDashboard() {
                             )}
 
                             {/* Action Buttons */}
-                            <div className="flex gap-3 pt-4 border-t">
+                            <div className="flex flex-wrap gap-3 pt-4 border-t">
                               {quotation.status === 'sent' && (
                                 <>
                                   <Button 
@@ -1733,9 +1733,18 @@ export default function CustomerDashboard() {
                                   </Button>
                                 </>
                               )}
-                              <Button variant="outline" onClick={() => window.open(`/api/quotations/${quotation.id}/pdf`, "_blank", "noopener,noreferrer")}>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Download PDF
+                              <Button variant="outline" onClick={() => window.open(`/api/quotations/${quotation.id}/pdf?view=1`, "_blank", "noopener,noreferrer")}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View PDF
+                              </Button>
+                              <Button asChild variant="outline">
+                                <a
+                                  href={`/api/quotations/${quotation.id}/pdf`}
+                                  download={`Quotation-${quotation.quotationId}.pdf`}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download Quotation
+                                </a>
                               </Button>
                               <Button variant="outline" onClick={() => setLocation("/contact")}>
                                 <MessageSquare className="w-4 h-4 mr-2" />
@@ -1745,6 +1754,25 @@ export default function CustomerDashboard() {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/quotations/${quotation.id}/pdf?view=1`, "_blank", "noopener,noreferrer")}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View PDF
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <a
+                            href={`/api/quotations/${quotation.id}/pdf`}
+                            download={`Quotation-${quotation.quotationId}.pdf`}
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Download Quotation
+                          </a>
+                        </Button>
+                      </div>
                       {quotation.status === 'sent' && (
                         <Button 
                           size="sm" 
@@ -1881,10 +1909,21 @@ export default function CustomerDashboard() {
                         {quote.createdAt ? format(new Date(quote.createdAt), "MMM d, yyyy") : "Date unavailable"} · {quote.status}
                       </p>
                     </div>
-                    <Button variant="outline" onClick={() => window.open(`/api/quotations/${quote.id}/pdf`, "_blank", "noopener,noreferrer")}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Download PDF
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(`/api/quotations/${quote.id}/pdf?view=1`, "_blank", "noopener,noreferrer")}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <Button asChild variant="outline">
+                        <a href={`/api/quotations/${quote.id}/pdf`} download={`Quotation-${quote.quotationId}.pdf`}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Quotation
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 ))}
             </div>
