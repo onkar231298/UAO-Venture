@@ -240,11 +240,30 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
         unitPrice: quotation.unitPrice,
         totalPrice: quotation.totalAmount,
       }];
+
+  const termsLines = quotation.terms?.trim()
+    ? quotation.terms
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+        .filter(Boolean)
+    : [
+        `Payment Terms: ${quotation.paymentTerms || 'As per agreement'}`,
+        `Delivery Terms: ${quotation.deliveryTerms || 'Ex-Works'}`,
+        `Lead Time: ${quotation.leadTime || 'As per availability'}`,
+        `Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`,
+        'Quality as per specifications',
+        'Standard export packaging',
+      ];
+  const termsRowHeights = termsLines.map((line, index) => {
+    const renderedLine = `${index + 1}. ${line}`;
+    return Math.max(11, doc.heightOfString(renderedLine, { width: 280, fontSize: 7 }) + 1);
+  });
+  const termsBoxHeight = Math.max(90, 22 + termsRowHeights.reduce((total, height) => total + height, 0) + 6);
   
-  // Precise footer height: totals(54) + spacing(8) + terms/words box(90) + spacing(12) + contact/sig(25) + bottom margin(10)
+  // Reserve the dynamic terms height so the full saved text fits above the footer.
   const hasDiscount = parseFloat(discountAmount) > 0;
   const totalsBlockH = 22 + (hasDiscount ? 20 : 0) + 24 + 10;
-  const termsBlockH = 90 + 12;
+  const termsBlockH = termsBoxHeight + 12;
   const contactBlockH = 25;
   const footerHeight = totalsBlockH + termsBlockH + contactBlockH + 8;
   const tableHeaderH = 18;
@@ -316,20 +335,19 @@ function createQuotationPDF(quotation: QuotationData, customer: CustomerData): P
   yPos += totalsYOffset + 34;
   
   // Terms and Conditions - side by side with amount in words
-  const termsBoxHeight = 90;
   doc.fillColor('#fff7e6').rect(40, yPos, 300, termsBoxHeight).fill()
      .strokeColor('#ffa500').rect(40, yPos, 300, termsBoxHeight).stroke();
   
   doc.fontSize(9).fillColor(orangeColor).text('Terms and Conditions', 50, yPos + 5);
   doc.moveTo(50, yPos + 16).lineTo(330, yPos + 16).strokeColor(orangeColor).stroke();
   
-  doc.fontSize(7).fillColor('black')
-     .text(`1. Payment Terms: ${quotation.paymentTerms}`, 50, yPos + 22, { width: 280 })
-     .text(`2. Delivery Terms: ${quotation.deliveryTerms}`, 50, yPos + 33, { width: 280 })
-     .text(`3. Lead Time: ${quotation.leadTime || 'As per availability'}`, 50, yPos + 44, { width: 280 })
-     .text(`4. Valid until: ${new Date(quotation.validUntil).toLocaleDateString('en-GB')}`, 50, yPos + 55, { width: 280 })
-     .text('5. Quality as per specifications', 50, yPos + 66, { width: 280 })
-     .text('6. Standard export packaging', 50, yPos + 77, { width: 280 });
+  doc.fontSize(7).fillColor('black');
+  let termsY = yPos + 22;
+  termsLines.forEach((line, index) => {
+    const renderedLine = `${index + 1}. ${line}`;
+    doc.text(renderedLine, 50, termsY, { width: 280 });
+    termsY += termsRowHeights[index];
+  });
   
   // Amount in Words (right side, next to terms)
   doc.fillColor('#f8f9fa').rect(350, yPos, 200, termsBoxHeight).fill()
