@@ -246,6 +246,9 @@ export default function Header() {
             <Link href="/products" aria-current={location === "/products" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/products' ? 'text-green-600 border-green-600 is-current' : ''}`}>
               Products
             </Link>
+            <Link href="/blog" aria-current={location === "/blog" ? "page" : undefined} className={`bfo-nav-link text-sm text-gray-700 hover:text-green-600 font-medium transition-colors border-b-2 border-transparent hover:border-green-600 pb-1 ${location === '/blog' ? 'text-green-600 border-green-600 is-current' : ''}`}>
+              Blog
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className={`bfo-nav-trigger text-sm text-gray-700 hover:text-green-600 font-medium transition-colors flex items-center border-b-2 border-transparent hover:border-green-600 pb-1 h-auto p-0 ${isPathActive("/ingredients") ? "is-current" : ""}`}>
