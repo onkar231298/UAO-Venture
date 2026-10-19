@@ -81,6 +81,7 @@ export default function MySalesAndQuotations() {
   const [showSalesOrderDetail, setShowSalesOrderDetail] = useState(false);
   const [showQuotationActivity, setShowQuotationActivity] = useState(false);
   const [showSalesOrderActivity, setShowSalesOrderActivity] = useState(false);
+  const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
 
   const publishQuotationMutation = useMutation({
     mutationFn: async (quotationId: number) => {
@@ -187,20 +188,33 @@ export default function MySalesAndQuotations() {
   };
 
   const handleDownloadQuotationPdf = async (quotationId: number) => {
+    setDownloadingQuotationId(quotationId);
     try {
       const response = await fetch(`/api/quotations/${quotationId}/pdf`, {
         credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to download PDF');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `PDF download failed (${response.status})`);
+      }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `quotation-${quotationId}.pdf`;
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      a.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Failed to download PDF:', error);
+      toast({
+        title: "Could not download quotation PDF",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingQuotationId(null);
     }
   };
 
@@ -441,12 +455,19 @@ export default function MySalesAndQuotations() {
                                   <Activity className="h-4 w-4" />
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleDownloadQuotationPdf(quotation.id)}
-                                  title="Download quotation PDF"
+                                  disabled={downloadingQuotationId === quotation.id}
+                                  data-testid={`button-download-quotation-pdf-${quotation.id}`}
+                                  title={quotation.status === "draft" ? "Download draft PDF for review before sending" : "Download quotation PDF"}
                                 >
-                                  <Download className="h-4 w-4" />
+                                  <Download className="mr-1 h-4 w-4" />
+                                  {downloadingQuotationId === quotation.id
+                                    ? "Preparing PDF..."
+                                    : quotation.status === "draft"
+                                      ? "Download Draft PDF"
+                                      : "Download PDF"}
                                 </Button>
                                 {quotation.status === "draft" && (
                                   <Button

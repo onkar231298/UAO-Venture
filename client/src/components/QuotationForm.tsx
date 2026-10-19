@@ -490,7 +490,7 @@ Packaging: Standard export packaging`,
         {/* Submit */}
         <div className="flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white pt-4 border-t">
           <p className="text-xs text-gray-500 sm:mr-auto sm:max-w-md">
-            Sending publishes the quotation to the customer dashboard. Email delivery will be added later.
+            Drafts stay private and can be downloaded for review from My Sales & Quotations. Sending publishes to the customer dashboard; email delivery will be added later.
           </p>
           <Button
             type="button"
@@ -499,7 +499,7 @@ Packaging: Standard export packaging`,
             disabled={isLoading}
             onClick={() => submitQuotation("draft")}
           >
-            Save as Draft
+            {isLoading ? "Saving draft..." : "Save as Draft"}
           </Button>
           <Button type="submit" disabled={isLoading} className="min-h-[44px]">
             {isLoading ? "Saving..." : formData.status === "sent" ? "Send to Customer Dashboard" : "Create Quotation"}

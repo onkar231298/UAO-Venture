@@ -79,10 +79,12 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
         title: quotation.status === "sent" ? "Quote published" : "Draft saved",
         description: quotation.status === "sent"
           ? "The quotation is available in the customer's dashboard. No email was sent."
-          : "The quotation draft has been saved and is not visible to the customer."
+          : `Draft ${quotation.quotationId} is saved. Open My Sales & Quotations and choose “Download Draft PDF” to review it before sending.`
       });
       queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+      if (quotation.status === "sent") {
+        queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
+      }
     },
     onError: (error: Error) => {
       if (error.message === 'UNAUTHORIZED') {
