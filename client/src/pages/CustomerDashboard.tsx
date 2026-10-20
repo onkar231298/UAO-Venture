@@ -14,10 +14,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Download, XCircle, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw } from "lucide-react";
+import { Search, Heart, MessageSquare, FileText, Package, TrendingUp, Eye, Download, XCircle, Clock, User, Building, Plus, Check, Truck, MapPin, DollarSign, Loader2, RefreshCw, Upload } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { PortalThemeProvider } from "@/components/portal/PortalTheme";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
+import QuotationDocumentsPanel from "@/components/crm/QuotationDocumentsPanel";
 
 export default function CustomerDashboard() {
   const { customer, isCustomerAuthenticated } = useCustomerAuth();
@@ -1706,6 +1707,18 @@ export default function CustomerDashboard() {
                             View Details
                           </Button>
                         </DialogTrigger>
+                        {["sent", "accepted"].includes(quotation.status) && (
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedQuotation(quotation)}
+                            >
+                              <Upload className="w-4 h-4 mr-1" />
+                              Upload signed quote / PO
+                            </Button>
+                          </DialogTrigger>
+                        )}
                         <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -1803,6 +1816,12 @@ export default function CustomerDashboard() {
                                 </div>
                               </div>
                             )}
+
+                            <QuotationDocumentsPanel
+                              quotationId={quotation.id}
+                              quotationStatus={quotation.status}
+                              mode="customer"
+                            />
 
                             {/* Company Information */}
                             <div className="space-y-3">

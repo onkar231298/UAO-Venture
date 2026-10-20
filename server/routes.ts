@@ -162,6 +162,7 @@ import {
 import { registerChatRoutes } from "./chatRoutes";
 import { createPortalAppearanceHandlers } from "./portalAppearance";
 import { getProposedQuotationTermsText } from "./quotationTerms";
+import { registerQuotationDocumentRoutes } from "./quotationDocumentRoutes";
 
 async function canManageQuotation(
   userId: string,
@@ -294,6 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+  registerQuotationDocumentRoutes(app);
   registerChatRoutes(app);
 
   // reCAPTCHA site key endpoint for frontend

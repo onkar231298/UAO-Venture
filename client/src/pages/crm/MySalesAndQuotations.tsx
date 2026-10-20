@@ -30,6 +30,7 @@ import {
 import { format } from "date-fns";
 import QuotationForm from "@/components/QuotationForm";
 import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
+import QuotationDocumentsPanel from "@/components/crm/QuotationDocumentsPanel";
 import type { Inquiry } from "@shared/schema";
 
 interface SalesMetrics {
@@ -1064,6 +1065,22 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
                     </div>
                   </div>
                 </>
+              )}
+
+              <Separator />
+              <QuotationDocumentsPanel
+                quotationId={quotation.id}
+                quotationStatus={quotation.status}
+                mode="staff"
+              />
+              {["sent", "accepted"].includes(quotation.status) && !quotation.salesOrderId && (
+                <div className="flex justify-end">
+                  <QuotationToSalesOrderButton
+                    quotationId={quotation.id}
+                    quotationNumber={quotation.quotationId}
+                    onConverted={onClose}
+                  />
+                </div>
               )}
             </div>
           )}

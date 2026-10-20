@@ -924,6 +924,23 @@ export const quotationItems = pgTable("quotation_items", {
   specifications: text("specifications"),
 });
 
+// Private documents exchanged while finalizing a quotation and purchase order.
+export const quotationDocuments = pgTable("quotation_documents", {
+  id: serial("id").primaryKey(),
+  quotationId: integer("quotation_id").notNull().references(() => quotations.id, { onDelete: "cascade" }),
+  documentType: varchar("document_type", { length: 50 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  objectPath: varchar("object_path", { length: 1000 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  uploaderRole: varchar("uploader_role", { length: 30 }).notNull(),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("quotation_documents_quotation_idx").on(table.quotationId),
+  index("quotation_documents_uploader_idx").on(table.uploadedBy),
+]);
+
 // Audit record created only when a customer explicitly accepts a quotation.
 export const quotationTermsAcceptances = pgTable("quotation_terms_acceptances", {
   id: serial("id").primaryKey(),
