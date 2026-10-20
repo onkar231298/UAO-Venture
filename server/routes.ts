@@ -5208,10 +5208,15 @@ If you didn't request a password reset, you can safely ignore this email. Your p
         offset: 0 
       });
       
-      const quotation = result.quotations.find(q => q.id === quotationId);
-      if (!quotation) {
+      const quotationSummary = result.quotations.find(q => q.id === quotationId);
+      const quotationRecord = await storage.getQuotation(quotationId);
+      if (!quotationSummary || !quotationRecord) {
         return res.status(404).json({ message: "Quotation not found" });
       }
+      // The list query enriches product/customer display fields but intentionally
+      // omits the full terms and PDF snapshots. Keep those from the full record
+      // so issued PDFs can render the exact terms saved when the quotation was sent.
+      const quotation = { ...quotationRecord, ...quotationSummary };
       if (sessionUser.isStaff === true) {
         const staffUser = await storage.getUser(sessionUser.claims?.sub);
         if (!staffUser || !(await canManageQuotation(sessionUser.claims.sub, staffUser.role, quotation))) {
