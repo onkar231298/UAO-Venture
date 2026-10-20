@@ -121,7 +121,7 @@ export function WideDesktop() {
   const [itemsPerPage, setItemsPerPage] = useState('10');
   const [currentPage, setCurrentPage] = useState(1);
   const [previewNotice, setPreviewNotice] = useState('');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   const countries = [...new Set(companies.map((company) => company.addressCountry))].sort();
   const filteredCompanies = useMemo(() => companies.filter((company) => {
@@ -182,7 +182,7 @@ export function WideDesktop() {
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Bright Fame Admin Portal</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Atlas Ingredients Admin Portal</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Organic Platform</p>
               </div>
               <button className="md:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5 text-gray-500" /></button>
