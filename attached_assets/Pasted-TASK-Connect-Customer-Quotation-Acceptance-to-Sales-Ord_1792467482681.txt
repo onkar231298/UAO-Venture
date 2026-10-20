@@ -1,0 +1,68 @@
+TASK: Connect Customer Quotation Acceptance to Sales Order Creation
+
+Current application state
+
+The following features are already implemented and must remain unchanged:
+
+* Customer management.
+* Sales representative dashboard.
+* Customer dashboard.
+* Sales representative can generate a quotation.
+* The quotation can be sent or made available to the customer through the existing dashboard workflow.
+* The customer can download the quotation as a PDF.
+
+Email integration will be implemented later. Do not work on email integration in this task.
+
+We currently have one dummy customer and one dummy sales representative. Use these existing accounts only.
+
+Required workflow
+
+1. The sales representative creates a quotation using the existing functionality.
+2. The customer opens the quotation from the customer dashboard.
+3. The customer can accept or reject the quotation directly from the dashboard.
+4. If accepted, the system records the acceptance and creates a linked Sales Order.
+5. If rejected, the system records the rejection and reason, if provided. It must not create a Sales Order.
+6. The sales representative can see the quotation’s updated status and the resulting Sales Order, if one was created.
+
+Business rules
+
+* Preserve the existing quotation PDF generation and download functionality.
+* Do not require email integration for acceptance or rejection.
+* The customer can respond only to quotations belonging to that customer.
+* The customer must not be able to modify the quotation’s prices, products, quantities, taxes or commercial terms while accepting or rejecting it.
+* Record the response, timestamp and customer account responsible for the action.
+* Acceptance must be processed securely on the backend.
+* Only one Sales Order may be created from a given accepted quotation.
+* Repeated clicks, page refreshes or simultaneous requests must not create duplicate Sales Orders.
+* The Sales Order must retain a link to the original quotation and customer.
+* Copy the accepted quotation’s products, quantities, prices, currency, taxes, delivery terms and payment terms accurately.
+* Do not silently modify the original quotation.
+* Rejection must not create an order.
+* If a quotation has expired, been cancelled or is otherwise ineligible, block acceptance according to the application’s rules.
+* If acceptance tracking or Sales Order generation already partially exists, reuse and complete it instead of creating duplicate tables or workflows.
+
+Scope restrictions
+
+Do not create additional customers or users.
+Do not rebuild the dashboards.
+Do not modify quotation PDF generation.
+Do not implement email integration.
+Do not create purchase orders, inventory transactions, production orders, supplier payments or bank transactions.
+Do not modify unrelated CRM modules.
+
+Testing
+
+Using the existing dummy customer and sales representative:
+
+1. Create or open an eligible quotation.
+2. Accept it from the customer dashboard.
+3. Confirm the acceptance is saved.
+4. Confirm exactly one linked Sales Order is created.
+5. Verify the order details against the original quotation.
+6. Confirm the sales representative can view the updated quotation status and Sales Order.
+7. Test rejection and confirm no Sales Order is created.
+8. Test repeated acceptance and page refresh to confirm duplicate orders are prevented.
+9. Verify customer permissions prevent access to another customer’s quotation.
+10. Confirm the existing PDF download and dashboard functionality still work.
+
+Report the actual test results and any remaining issues. Make only the minimum changes required for this task. Stop after completion and wait for the next instruction.
