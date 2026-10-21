@@ -163,6 +163,8 @@ import { registerChatRoutes } from "./chatRoutes";
 import { createPortalAppearanceHandlers } from "./portalAppearance";
 import { getProposedQuotationTermsText } from "./quotationTerms";
 import { registerQuotationDocumentRoutes } from "./quotationDocumentRoutes";
+import { registerCustomerEmailTemplateRoutes } from "./customerEmailTemplateRoutes";
+import { sendCustomerTransactionalEmail } from "./customerTransactionalEmail";
 
 async function canManageQuotation(
   userId: string,
@@ -296,6 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
   registerQuotationDocumentRoutes(app);
+  await registerCustomerEmailTemplateRoutes(app);
   registerChatRoutes(app);
 
   // reCAPTCHA site key endpoint for frontend
@@ -678,6 +681,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      void sendCustomerTransactionalEmail({
+        templateKey: "customer_welcome",
+        to: user.email || userData.email,
+        variables: {
+          first_name: user.firstName || "Customer",
+          full_name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "Customer",
+          email: user.email || userData.email,
+          company_name: user.companyName || userData.companyName || "",
+          login_url: `${getBaseUrl()}/login`,
+          year: String(new Date().getFullYear()),
+        },
+      });
+
       res.status(201).json({ 
         message: "Account created successfully",
         user: {
@@ -923,102 +939,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build the reset URL
       const baseUrl = getBaseUrl();
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-      
-      console.log(`Password reset requested for ${email}, URL: ${resetUrl}`);
-      
-      // Try to send email using admin@bright-organic.com or first available connected email config
-      try {
-        const emailConfigs = await storage.getUserEmailConfigs();
-        // Prioritize admin@bright-organic.com for system emails
-        const connectedConfig = emailConfigs.find(config =>
-          config.isConnected && config.titanAppPasswordEncrypted && config.companyEmail === 'admin@bright-organic.com'
-        ) || emailConfigs.find(config => config.isConnected && config.titanAppPasswordEncrypted);
-        
-        if (connectedConfig) {
-          console.log(`Using email config: ${connectedConfig.companyEmail} for password reset`);
-          
-          // Send password reset email
-          await titanEmailProvider.send({
-            email: connectedConfig.companyEmail,
-            encryptedAppPassword: connectedConfig.titanAppPasswordEncrypted!,
-          }, {
-            to: [email],
-            subject: 'Reset Your Password - Atlas Ingredients',
-            fromName: 'Atlas Ingredients',
-            bodyHtml: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              </head>
-              <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="text-align: center; margin-bottom: 30px;">
-                  <h1 style="color: #16a34a; margin-bottom: 10px;">Atlas Ingredients</h1>
-                </div>
-                
-                <h2 style="color: #333;">Reset Your Password</h2>
-                
-                <p>Hello ${customer.firstName || 'Customer'},</p>
-                
-                <p>We received a request to reset the password for your account associated with ${email}.</p>
-                
-                <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" 
-                     style="background-color: #16a34a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-                    Reset Password
-                  </a>
-                </div>
-                
-                <p style="color: #666; font-size: 14px;">
-                  If the button above doesn't work, copy and paste this link into your browser:<br>
-                  <a href="${resetUrl}" style="color: #16a34a;">${resetUrl}</a>
-                </p>
-                
-                <p style="color: #666; font-size: 14px;">
-                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-                </p>
-                
-                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                
-                <p style="color: #999; font-size: 12px; text-align: center;">
-                  &copy; ${new Date().getFullYear()} Atlas Ingredients. All rights reserved.<br>
-                  This is an automated message, please do not reply.
-                </p>
-              </body>
-              </html>
-            `,
-            bodyText: `
-Reset Your Password - Atlas Ingredients
 
-Hello ${customer.firstName || 'Customer'},
+      await sendCustomerTransactionalEmail({
+        templateKey: "customer_password_reset",
+        to: customer.email || email,
+        variables: {
+          first_name: customer.firstName || "Customer",
+          email: customer.email || email,
+          reset_url: resetUrl,
+          expiry: "1 hour",
+          year: String(new Date().getFullYear()),
+        },
+      });
 
-We received a request to reset the password for your account associated with ${email}.
-
-Click the link below to reset your password. This link will expire in 1 hour.
-
-${resetUrl}
-
-If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-
-© ${new Date().getFullYear()} Atlas Ingredients. All rights reserved.
-            `,
-          });
-          
-          console.log(`Password reset email sent successfully to ${email}`);
-        } else {
-          console.warn('No connected email configuration found to send password reset email');
-          // Log the reset URL for manual testing/debugging
-          console.log(`Password reset URL (email not sent): ${resetUrl}`);
-        }
-      } catch (emailError) {
-        console.error('Failed to send password reset email:', emailError);
-        // Don't fail the request - the token was created, user can try again
-        console.log(`Password reset URL (email failed): ${resetUrl}`);
-      }
-      
       res.json({ 
         message: 'If an account exists with this email, you will receive a password reset link.' 
       });

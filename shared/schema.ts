@@ -2932,6 +2932,27 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 
+// System email templates are separate from bulk campaign templates so account
+// security messages cannot appear in campaign composer templates by accident.
+export const transactionalEmailTemplates = pgTable("transactional_email_templates", {
+  id: serial("id").primaryKey(),
+  templateKey: varchar("template_key", { length: 80 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 40 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // active, draft
+  subject: varchar("subject", { length: 500 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content").notNull(),
+  description: text("description"),
+  variables: jsonb("variables").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("transactional_email_templates_key_unique").on(table.templateKey),
+  index("transactional_email_templates_category_status_idx").on(table.category, table.status),
+]);
+
 // ==================== HR MANAGEMENT MODULE ====================
 
 // Attendance Records for punch in/out tracking

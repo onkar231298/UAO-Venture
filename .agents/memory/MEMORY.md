@@ -23,6 +23,7 @@
 - [Mailchimp send retry safety](mailchimp-send-retry-safety.md) — uncertain or externally prepared bulk sends must reconcile, never retry; keep hosted attachments live until non-delivery is confirmed.
 - [Shared Mailchimp routing](shared-mailchimp-routing.md) — owner approved shared sales From AND Reply-To; automatic staff access, no setup tab; other mail services stay separate.
 - [Quote email delivery](quotation-email-delivery.md) — quotes are dashboard-only for now; future transactional email must come from the assigned salesperson’s G Suite account.
+- [Customer transactional email scope](customer-transactional-email-scope.md) — signup sends a welcome email without verification; quote and order templates remain drafts until their sender flows are approved.
 - [Company snapshot reconciliation](company-snapshot-reconciliation.md) — company/contact exports may rekey IDs; compare business identities and parent-linked contacts before import, not counts or raw IDs.
 - [Copied-site tag reconciliation](copied-site-tag-reconciliation.md) — product tables can be empty while tags are seeded; match taxonomy by slug and name, never by numeric source ID.
 - [Hero slide test data safety](hero-slide-test-data-safety.md) — verify managed carousel slides with isolated fixtures or staging, never by changing live CMS records.

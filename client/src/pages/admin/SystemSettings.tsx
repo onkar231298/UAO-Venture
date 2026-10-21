@@ -15,6 +15,7 @@ import EmailConfigManagement from "./EmailConfigManagement";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 import QuotationTermsManagement from "@/pages/crm/QuotationTermsManagement";
 import QuotationPdfTemplateManagement from "./QuotationPdfTemplateManagement";
+import CustomerEmailTemplateManagement from "./CustomerEmailTemplateManagement";
 
 interface DocumentNumberSetting {
   id: number;
@@ -376,6 +377,20 @@ export default function SystemSettings({ canManagePdfTemplates = false }: { canM
                 ? <QuotationPdfTemplateManagement />
                 : <p className="text-sm text-destructive">Only a super admin can manage quotation PDF formats.</p>}
             </div>
+          ) : selectedTemplate === "customer-account-emails" ? (
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTemplate(null)}
+                data-testid="button-back-to-template-management"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Template Management
+              </Button>
+              {canManagePdfTemplates
+                ? <CustomerEmailTemplateManagement />
+                : <p className="text-sm text-destructive">Only a super admin can manage customer email templates.</p>}
+            </div>
           ) : (
             <div className="space-y-4">
               <div>
@@ -422,6 +437,27 @@ export default function SystemSettings({ canManagePdfTemplates = false }: { canM
                         data-testid="button-manage-quotation-pdf-format"
                       >
                         Manage format
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                {canManagePdfTemplates && (
+                  <Card data-testid="template-card-customer-account-emails">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        Customer Account Emails
+                      </CardTitle>
+                      <CardDescription>
+                        Manage welcome, password-reset, and future transactional email templates.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        onClick={() => setSelectedTemplate("customer-account-emails")}
+                        data-testid="button-manage-customer-account-emails"
+                      >
+                        Manage emails
                       </Button>
                     </CardContent>
                   </Card>
