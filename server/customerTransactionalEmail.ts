@@ -9,7 +9,11 @@ export type CustomerEmailTemplateKey =
   | "customer_password_reset"
   | "customer_account_invitation"
   | "quotation_ready"
-  | "sales_order_confirmation";
+  | "sales_order_confirmation"
+  | "customer_inquiry_received"
+  | "sample_request_update"
+  | "shipment_dispatch_update"
+  | "quality_documents_ready";
 
 export interface TemplateContent {
   subject: string;
@@ -157,6 +161,91 @@ View Sales Order: {{sales_order_url}}
 
 © {{year}} Atlas Ingredients`,
   },
+  {
+    templateKey: "customer_inquiry_received",
+    name: "Customer inquiry received",
+    category: "sales",
+    status: "draft",
+    description: "Draft only. Acknowledges a customer inquiry and provides its reference and assigned representative.",
+    variables: ["first_name", "company_name", "inquiry_number", "product_name", "sales_rep_name", "dashboard_url", "year"],
+    subject: "We received your inquiry {{inquiry_number}}",
+    htmlContent: `<h1>We received your inquiry</h1><p>Hello {{first_name}},</p><p>Thank you for contacting Atlas Ingredients. We have recorded inquiry {{inquiry_number}} for {{product_name}} from {{company_name}}.</p><p>Your sales representative is {{sales_rep_name}}. You can review your request in your customer dashboard:</p><p><a href="{{dashboard_url}}">Open customer dashboard</a></p><p>Our team will review the details and follow up with you.</p><p>© {{year}} Atlas Ingredients</p>`,
+    textContent: `We received your inquiry {{inquiry_number}}
+
+Hello {{first_name}},
+Thank you for contacting Atlas Ingredients. We have recorded inquiry {{inquiry_number}} for {{product_name}} from {{company_name}}.
+
+Your sales representative is {{sales_rep_name}}. Review your request in your customer dashboard:
+{{dashboard_url}}
+
+Our team will review the details and follow up with you.
+
+© {{year}} Atlas Ingredients`,
+  },
+  {
+    templateKey: "sample_request_update",
+    name: "Sample request update",
+    category: "sales",
+    status: "draft",
+    description: "Draft only. Provides an update about a customer's sample request without promising a fixed dispatch date.",
+    variables: ["first_name", "company_name", "sample_request_number", "product_name", "request_status", "estimated_ship_date", "sales_rep_name", "dashboard_url", "year"],
+    subject: "Update on sample request {{sample_request_number}}",
+    htmlContent: `<h1>Sample request update</h1><p>Hello {{first_name}},</p><p>There is an update for sample request {{sample_request_number}} for {{product_name}} at {{company_name}}.</p><p><strong>Current status:</strong> {{request_status}}</p><p><strong>Estimated ship date:</strong> {{estimated_ship_date}}</p><p>Your sales representative is {{sales_rep_name}}. For the latest details, visit your customer dashboard:</p><p><a href="{{dashboard_url}}">View sample request</a></p><p>© {{year}} Atlas Ingredients</p>`,
+    textContent: `Sample request update: {{sample_request_number}}
+
+Hello {{first_name}},
+There is an update for your sample request for {{product_name}} at {{company_name}}.
+
+Current status: {{request_status}}
+Estimated ship date: {{estimated_ship_date}}
+
+Your sales representative is {{sales_rep_name}}. View the latest details in your customer dashboard:
+{{dashboard_url}}
+
+© {{year}} Atlas Ingredients`,
+  },
+  {
+    templateKey: "shipment_dispatch_update",
+    name: "Shipment and dispatch update",
+    category: "operations",
+    status: "draft",
+    description: "Draft only. Shares order dispatch, carrier, and tracking details when available.",
+    variables: ["first_name", "company_name", "sales_order_number", "shipment_status", "shipment_date", "carrier_name", "tracking_number", "tracking_url", "estimated_delivery_date", "year"],
+    subject: "Shipment update for Sales Order {{sales_order_number}}",
+    htmlContent: `<h1>Shipment update</h1><p>Hello {{first_name}},</p><p>Here is the latest shipment update for Sales Order {{sales_order_number}} for {{company_name}}.</p><p><strong>Status:</strong> {{shipment_status}}<br><strong>Shipment date:</strong> {{shipment_date}}<br><strong>Carrier:</strong> {{carrier_name}}<br><strong>Tracking number:</strong> {{tracking_number}}<br><strong>Estimated delivery:</strong> {{estimated_delivery_date}}</p><p><a href="{{tracking_url}}">Track shipment</a></p><p>© {{year}} Atlas Ingredients</p>`,
+    textContent: `Shipment update for Sales Order {{sales_order_number}}
+
+Hello {{first_name}},
+Here is the latest shipment update for {{company_name}}.
+
+Status: {{shipment_status}}
+Shipment date: {{shipment_date}}
+Carrier: {{carrier_name}}
+Tracking number: {{tracking_number}}
+Estimated delivery: {{estimated_delivery_date}}
+Track shipment: {{tracking_url}}
+
+© {{year}} Atlas Ingredients`,
+  },
+  {
+    templateKey: "quality_documents_ready",
+    name: "Quality documents ready",
+    category: "quality",
+    status: "draft",
+    description: "Draft only. Directs the customer to the authenticated dashboard for COA, COI, or specification documents.",
+    variables: ["first_name", "company_name", "product_name", "document_type", "document_reference", "documents_url", "year"],
+    subject: "Quality documents ready for {{product_name}}",
+    htmlContent: `<h1>Your quality documents are ready</h1><p>Hello {{first_name}},</p><p>The {{document_type}} document (reference {{document_reference}}) for {{product_name}} is ready for {{company_name}}.</p><p>For your security, sign in to your customer dashboard to view or download the document:</p><p><a href="{{documents_url}}">Open quality documents</a></p><p>© {{year}} Atlas Ingredients</p>`,
+    textContent: `Quality documents ready for {{product_name}}
+
+Hello {{first_name}},
+The {{document_type}} document (reference {{document_reference}}) for {{product_name}} is ready for {{company_name}}.
+
+For your security, sign in to your customer dashboard to view or download the document:
+{{documents_url}}
+
+© {{year}} Atlas Ingredients`,
+  },
 ];
 
 const DEFAULTS_BY_KEY = new Map(
@@ -178,6 +267,21 @@ const PREVIEW_VALUES: Record<string, string> = {
   sales_rep_name: "Sales Representative",
   sales_order_number: "SO-2026-001",
   sales_order_url: "https://example.com/customer-dashboard/orders",
+  inquiry_number: "INQ-2026-001",
+  product_name: "Organic Turmeric Powder",
+  dashboard_url: "https://example.com/customer/dashboard",
+  sample_request_number: "SMP-2026-001",
+  request_status: "Preparing",
+  estimated_ship_date: "Sample value",
+  shipment_status: "Dispatched",
+  shipment_date: "Sample value",
+  carrier_name: "Example Logistics",
+  tracking_number: "TRACK-123456",
+  tracking_url: "https://example.com/track/TRACK-123456",
+  estimated_delivery_date: "Sample value",
+  document_type: "Certificate of Analysis (COA)",
+  document_reference: "COA-2026-001",
+  documents_url: "https://example.com/customer/documents",
   year: String(new Date().getFullYear()),
 };
 
@@ -188,6 +292,18 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function sanitizeEmailUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    parsed.username = "";
+    parsed.password = "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
 }
 
 function replaceTemplateVariables(
@@ -208,16 +324,22 @@ export function renderCustomerEmailTemplate(
   template: TemplateContent,
   variables: Record<string, string>,
 ): { subject: string; html: string; text: string } {
+  const normalizedVariables = Object.fromEntries(
+    Object.entries(variables).map(([key, value]) => {
+      const normalizedValue = String(value || "");
+      return [key, key.endsWith("_url") ? sanitizeEmailUrl(normalizedValue) : normalizedValue];
+    }),
+  );
   const safeSubjectVariables = Object.fromEntries(
-    Object.entries(variables).map(([key, value]) => [
+    Object.entries(normalizedVariables).map(([key, value]) => [
       key,
       String(value || "").replace(/[\r\n]+/g, " ").replace(/[\x00-\x1f\x7f]/g, ""),
     ]),
   );
   return {
     subject: replaceTemplateVariables(template.subject, template.variables, safeSubjectVariables, false),
-    html: replaceTemplateVariables(template.htmlContent, template.variables, variables, true),
-    text: replaceTemplateVariables(template.textContent, template.variables, variables, false),
+    html: replaceTemplateVariables(template.htmlContent, template.variables, normalizedVariables, true),
+    text: replaceTemplateVariables(template.textContent, template.variables, normalizedVariables, false),
   };
 }
 

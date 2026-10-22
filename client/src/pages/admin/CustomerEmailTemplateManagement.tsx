@@ -37,6 +37,28 @@ interface RenderedPreview {
 }
 
 const TEMPLATE_QUERY_KEY = ["/api/admin/customer-email-templates"];
+const TEMPLATE_GROUPS = [
+  {
+    key: "customer_account",
+    title: "Customer Accounts",
+    description: "Registration, password, and account access emails.",
+  },
+  {
+    key: "sales",
+    title: "Sales & Orders",
+    description: "Inquiry, quotation, sample, and order communications.",
+  },
+  {
+    key: "operations",
+    title: "Operations & Delivery",
+    description: "Shipment and dispatch updates for customers.",
+  },
+  {
+    key: "quality",
+    title: "Quality Documents",
+    description: "Secure notices for product quality documentation.",
+  },
+];
 
 export default function CustomerEmailTemplateManagement() {
   const { toast } = useToast();
@@ -286,29 +308,41 @@ export default function CustomerEmailTemplateManagement() {
           Manage account emails separately from bulk marketing campaigns.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {templates.map((template) => (
-          <Card key={template.templateKey}>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  {template.name}
-                </CardTitle>
-                <Badge variant={template.status === "active" ? "default" : "secondary"}>
-                  {template.status === "active" ? "Active" : "Draft"}
-                </Badge>
-              </div>
-              <CardDescription>{template.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" onClick={() => setSelectedKey(template.templateKey)}>
-                Manage template
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {TEMPLATE_GROUPS.map((group) => {
+        const groupTemplates = templates.filter((template) => template.category === group.key);
+        if (groupTemplates.length === 0) return null;
+        return (
+          <section key={group.key} className="space-y-3">
+            <div>
+              <h4 className="font-semibold">{group.title}</h4>
+              <p className="text-sm text-muted-foreground">{group.description}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {groupTemplates.map((template) => (
+                <Card key={template.templateKey}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        {template.name}
+                      </CardTitle>
+                      <Badge variant={template.status === "active" ? "default" : "secondary"}>
+                        {template.status === "active" ? "Active" : "Draft"}
+                      </Badge>
+                    </div>
+                    <CardDescription>{template.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" onClick={() => setSelectedKey(template.templateKey)}>
+                      Manage template
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -37,15 +37,55 @@ test("removes control characters from email subjects and blanks unknown placehol
   assert.equal(result.text, "Asha\r\nBcc: attacker@example.com ");
 });
 
+test("only keeps HTTP and HTTPS URL values in templates", () => {
+  const result = renderCustomerEmailTemplate({
+    subject: "Shipment tracking",
+    htmlContent: "<a href=\"{{tracking_url}}\">Track</a>",
+    textContent: "Track: {{tracking_url}}",
+    variables: ["tracking_url"],
+  }, {
+    tracking_url: "javascript:alert(1)",
+  });
+
+  assert.equal(result.html, "<a href=\"\">Track</a>");
+  assert.equal(result.text, "Track: ");
+});
+
 test("provides active account defaults and draft-only future templates", () => {
   const byKey = new Map(CUSTOMER_EMAIL_TEMPLATE_DEFAULTS.map((template) => [template.templateKey, template]));
   assert.equal(byKey.get("customer_welcome")?.status, "active");
   assert.equal(byKey.get("customer_password_reset")?.status, "active");
   assert.equal(byKey.get("quotation_ready")?.status, "draft");
   assert.equal(byKey.get("sales_order_confirmation")?.status, "draft");
+  assert.equal(byKey.get("customer_account_invitation")?.status, "draft");
 
   const preview = renderCustomerEmailTemplatePreview(byKey.get("customer_password_reset")!);
   assert.equal(preview.subject, "Reset your Atlas Ingredients password");
   assert.match(preview.html, /PREVIEW_ONLY/);
   assert.doesNotMatch(preview.html, /token=[a-f0-9]{64}/i);
+});
+
+test("adds four draft-only customer operations templates with complete previews", () => {
+  const byKey = new Map(CUSTOMER_EMAIL_TEMPLATE_DEFAULTS.map((template) => [template.templateKey, template]));
+  const expectedCategories: Record<string, string> = {
+    customer_inquiry_received: "sales",
+    sample_request_update: "sales",
+    shipment_dispatch_update: "operations",
+    quality_documents_ready: "quality",
+  };
+
+  for (const [templateKey, category] of Object.entries(expectedCategories)) {
+    const template = CUSTOMER_EMAIL_TEMPLATE_DEFAULTS.find((item) => item.templateKey === templateKey);
+    assert.ok(template, `Missing ${templateKey} template`);
+    assert.equal(template.status, "draft");
+    assert.equal(template.category, category);
+
+    const preview = renderCustomerEmailTemplatePreview(template);
+    assert.doesNotMatch(preview.subject + preview.html + preview.text, /\{\{\s*[a-zA-Z0-9_]+\s*\}\}/);
+  }
+
+  assert.match(byKey.get("customer_inquiry_received")!.textContent, /inquiry/);
+  assert.match(byKey.get("sample_request_update")!.textContent, /sample request/);
+  assert.match(byKey.get("shipment_dispatch_update")!.textContent, /Track shipment/);
+  assert.match(byKey.get("quality_documents_ready")!.htmlContent, /For your security/);
 });
