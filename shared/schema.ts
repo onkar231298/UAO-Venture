@@ -1153,6 +1153,10 @@ export const purchaseOrders = pgTable("purchase_orders", {
   expectedDelivery: timestamp("expected_delivery"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   currency: varchar("currency", { length: 3 }).default("USD"),
+  subtotal: decimal("subtotal", { precision: 14, scale: 2 }),
+  taxPercent: decimal("tax_percent", { precision: 5, scale: 2 }).default("0"),
+  taxAmount: decimal("tax_amount", { precision: 14, scale: 2 }).default("0"),
+  deliveryTerms: text("delivery_terms"),
   status: varchar("status", { length: 50 }).default("draft"),
   paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
   terms: text("terms"),
@@ -3483,6 +3487,7 @@ export type InsertQualityVendor = z.infer<typeof insertQualityVendorSchema>;
 export const vendorApprovalScopes = pgTable("vendor_approval_scopes", {
   id: serial("id").primaryKey(),
   vendorId: integer("vendor_id").notNull().references(() => qualityVendors.id, { onDelete: "cascade" }),
+  scopeKey: text("scope_key"),
   scopeType: varchar("scope_type", { length: 30 }).notNull(), // product, packaging, service
   productId: integer("product_id").references(() => products.id),
   scopeDescription: text("scope_description").notNull(),
@@ -3500,6 +3505,7 @@ export const vendorApprovalScopes = pgTable("vendor_approval_scopes", {
 }, (table) => [
   index("vendor_scope_vendor_status_idx").on(table.vendorId, table.approvalStatus),
   index("vendor_scope_product_idx").on(table.productId),
+  uniqueIndex("vendor_scope_identity_unique").on(table.vendorId, table.scopeKey),
 ]);
 export const insertVendorApprovalScopeSchema = createInsertSchema(vendorApprovalScopes).omit({
   id: true, createdAt: true, updatedAt: true, reviewedById: true, reviewedAt: true, reviewNotes: true,
@@ -3529,6 +3535,7 @@ export const salesOrderFulfillmentRequirements = pgTable("sales_order_fulfillmen
   productName: varchar("product_name", { length: 255 }).notNull(),
   specification: text("specification"),
   requiredQuantity: decimal("required_quantity", { precision: 14, scale: 3 }).notNull(),
+  fulfilledQuantity: decimal("fulfilled_quantity", { precision: 14, scale: 3 }).notNull().default("0"),
   unit: varchar("unit", { length: 50 }).notNull(),
   requiredBy: timestamp("required_by"),
   priority: varchar("priority", { length: 20 }).notNull().default("normal"),
@@ -3553,6 +3560,8 @@ export const materialRequisitions = pgTable("material_requisitions", {
   unit: varchar("unit", { length: 50 }).notNull(),
   requiredBy: timestamp("required_by"),
   reason: text("reason").notNull(),
+  requestingDepartment: varchar("requesting_department", { length: 50 }).notNull().default("purchase"),
+  stockAnalysis: jsonb("stock_analysis").$type<Record<string, unknown>>(),
   status: varchar("status", { length: 30 }).notNull().default("draft"),
   requestedById: varchar("requested_by_id").notNull().references(() => users.id),
   approvedById: varchar("approved_by_id").references(() => users.id),
@@ -3572,6 +3581,7 @@ export const vendorOffers = pgTable("vendor_offers", {
   vendorScopeId: integer("vendor_scope_id").notNull().references(() => vendorApprovalScopes.id),
   materialRequisitionId: integer("material_requisition_id").notNull().references(() => materialRequisitions.id),
   quantity: decimal("quantity", { precision: 14, scale: 3 }).notNull(),
+  receivedQuantity: decimal("received_quantity", { precision: 14, scale: 3 }).notNull().default("0"),
   unit: varchar("unit", { length: 50 }).notNull(),
   unitPrice: decimal("unit_price", { precision: 14, scale: 4 }).notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
