@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Search, Filter, ShoppingCart, Building, Calendar, DollarSign, User, ChevronRight, Package, FileText, Eye, Truck, Clock, CheckCircle, History, Activity } from "lucide-react";
+import { Loader2, Search, Filter, ShoppingCart, Building, Calendar, DollarSign, User, ChevronRight, Package, FileText, Eye, Truck, Clock, CheckCircle, History, Activity, Download, Pencil } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import SalesOrderEditDialog from "@/components/crm/SalesOrderEditDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const SO_STATUSES = [
   { id: "draft", label: "Draft", color: "bg-gray-100 text-gray-800" },
@@ -32,6 +34,8 @@ export default function SalesOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<any>(null);
+  const { toast } = useToast();
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -85,6 +89,30 @@ export default function SalesOrdersPage() {
   const handleViewOrder = (order: any) => {
     setSelectedOrderId(order.id);
     setShowDetailDialog(true);
+  };
+
+  const handleDownloadPdf = async (order: any) => {
+    try {
+      const response = await fetch(`/api/sales-orders/${order.id}/pdf`, { credentials: "include" });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || "Could not download Sales Order PDF");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${order.soNumber || `sales-order-${order.id}`}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast({
+        title: "Could not download Sales Order PDF",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCloseDetail = () => {
@@ -223,7 +251,7 @@ export default function SalesOrdersPage() {
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden md:table-cell">Date</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -276,6 +304,30 @@ export default function SalesOrdersPage() {
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadPdf(order);
+                            }}
+                            data-testid={`button-download-so-pdf-${order.id}`}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            PDF
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOrderToEdit(order);
+                            }}
+                            data-testid={`button-edit-so-${order.id}`}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -507,6 +559,11 @@ export default function SalesOrdersPage() {
           )}
         </DialogContent>
       </Dialog>
+      <SalesOrderEditDialog
+        order={orderToEdit}
+        open={!!orderToEdit}
+        onClose={() => setOrderToEdit(null)}
+      />
     </div>
   );
 }

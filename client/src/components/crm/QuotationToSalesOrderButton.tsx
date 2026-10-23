@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import ManualSalesOrderForm from "@/components/crm/ManualSalesOrderForm";
+import type { ManualSalesOrder } from "../../../../shared/salesOrderContract";
 
 interface QuotationToSalesOrderButtonProps {
   quotationId: number;
@@ -27,16 +28,16 @@ export default function QuotationToSalesOrderButton({
   const { toast } = useToast();
 
   const convertMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (manualOrder: ManualSalesOrder) => {
       const response = await fetch("/api/sales-orders/convert-from-quotation", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quotationId }),
+        body: JSON.stringify({ quotationId, manualOrder }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result.message || "Could not convert this quotation");
+        throw new Error(result.message || "Could not create this Sales Order");
       }
       return result as { soNumber?: string };
     },
@@ -53,7 +54,7 @@ export default function QuotationToSalesOrderButton({
     },
     onError: (error: Error) => {
       toast({
-        title: "Could not convert quotation",
+        title: "Could not create Sales Order",
         description: error.message,
         variant: "destructive",
       });
@@ -77,39 +78,16 @@ export default function QuotationToSalesOrderButton({
           data-testid={`button-convert-quotation-to-sales-order-${quotationId}`}
         >
           <ShoppingCart className="mr-1 h-4 w-4" />
-          Generate SO
+          Create SO
         </Button>
       </span>
-      <AlertDialog
+      <ManualSalesOrderForm
         open={open}
-        onOpenChange={(nextOpen) => {
-          if (!convertMutation.isPending) setOpen(nextOpen);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Convert this quotation to a Sales Order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This creates a draft Sales Order from <strong>{quotationNumber}</strong> and links it to the quotation.
-              Continue only after customer acceptance has been recorded in the dashboard or verified by staff from another channel.
-              A quotation can be converted only once.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={convertMutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                convertMutation.mutate();
-              }}
-              disabled={convertMutation.isPending}
-              data-testid={`button-confirm-convert-quotation-to-sales-order-${quotationId}`}
-            >
-              {convertMutation.isPending ? "Converting..." : "Create Sales Order"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        quotationNumber={quotationNumber}
+        pending={convertMutation.isPending}
+        onOpenChange={setOpen}
+        onSubmit={(order) => convertMutation.mutate(order)}
+      />
     </>
   );
 }

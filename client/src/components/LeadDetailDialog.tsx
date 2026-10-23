@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import RichTextEditor from "./RichTextEditor";
 import EmailViewDialog from "./EmailViewDialog";
 import { ClickToCall, SendSmsButton, Dialer } from "./crm/Dialer";
+import QuotationToSalesOrderButton from "./crm/QuotationToSalesOrderButton";
 
 interface LeadDetailDialogProps {
   lead: LeadWithDetails | null;
@@ -2704,21 +2705,14 @@ Packaging: Standard export packaging`,
                                 </Button>
                               ) : null}
                               {quote.status === 'accepted' && !quote.salesOrderId && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700"
-                                  onClick={() => initializeSOForm(quote)}
-                                  disabled={convertToSOMutation.isPending}
-                                  data-testid="button-convert-to-so"
-                                >
-                                  {convertToSOMutation.isPending ? (
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <ShoppingCart className="h-3 w-3 mr-1" />
-                                  )}
-                                  Create Sales Order
-                                </Button>
+                                <QuotationToSalesOrderButton
+                                  quotationId={quote.id}
+                                  quotationNumber={quote.quotationId || quote.quotationNumber}
+                                  onConverted={() => {
+                                    queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
+                                    queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+                                  }}
+                                />
                               )}
                               {quote.salesOrderId && (
                                 <div className="flex items-center gap-2">

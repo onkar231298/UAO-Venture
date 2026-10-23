@@ -208,6 +208,7 @@ import {
   type UserSecurityAlert,
   type InsertUserSecurityAlert,
 } from "@shared/schema";
+import { manualSalesOrderSchema, calculateSalesOrderTotals, type ManualSalesOrder } from "@shared/salesOrderContract";
 import { db } from "./db";
 import { eq, like, ilike, and, desc, asc, count, sql, or, inArray, gte, lte, ne, isNull, isNotNull } from "drizzle-orm";
 import csv from "csv-parser";
@@ -438,6 +439,7 @@ export interface IStorage {
   getSalesOrderWithDetails(id: number): Promise<SalesOrderWithDetails | undefined>;
   createSalesOrder(order: InsertSalesOrder): Promise<SalesOrder>;
   createSalesOrderFromQuotation(quotationId: number, options: {
+    manualOrder: ManualSalesOrder;
     paymentTermsAdvancePercent?: number;
     paymentTermsCreditDays?: number;
     expectedDeliveryDate?: Date;
@@ -3728,11 +3730,11 @@ export class DatabaseStorage implements IStorage {
           customerEmail: salesOrders.customerEmail,
           customerPhone: salesOrders.customerPhone,
           customerCompanyName: sql<string>`COALESCE(NULLIF(${salesOrders.customerCompanyName}, ''), ${companies.companyName})`,
-          customerAddress: salesOrders.customerAddress,
-          customerCity: salesOrders.customerCity,
-          customerState: salesOrders.customerState,
-          customerCountry: salesOrders.customerCountry,
-          customerPostalCode: salesOrders.customerPostalCode,
+          billingAddress: salesOrders.billingAddress,
+          billingCity: salesOrders.billingCity,
+          billingState: salesOrders.billingState,
+          billingCountry: salesOrders.billingCountry,
+          billingPostalCode: salesOrders.billingPostalCode,
           shippingAddress: salesOrders.shippingAddress,
           shippingCity: salesOrders.shippingCity,
           shippingState: salesOrders.shippingState,
@@ -3740,25 +3742,23 @@ export class DatabaseStorage implements IStorage {
           shippingPostalCode: salesOrders.shippingPostalCode,
           subtotal: salesOrders.subtotal,
           taxAmount: salesOrders.taxAmount,
-          shippingCost: salesOrders.shippingCost,
           discountAmount: salesOrders.discountAmount,
-          grandTotal: salesOrders.grandTotal,
+          totalAmount: salesOrders.totalAmount,
+          grandTotal: salesOrders.totalAmount,
           currency: salesOrders.currency,
-          paymentTerms: salesOrders.paymentTerms,
-          paymentMethod: salesOrders.paymentMethod,
+          paymentTermsAdvancePercent: salesOrders.paymentTermsAdvancePercent,
+          paymentTermsCreditDays: salesOrders.paymentTermsCreditDays,
+          paymentTermsNotes: salesOrders.paymentTermsNotes,
           paymentStatus: salesOrders.paymentStatus,
-          deliveryMethod: salesOrders.deliveryMethod,
+          deliveryMethod: salesOrders.shippingMethod,
           expectedDeliveryDate: salesOrders.expectedDeliveryDate,
-          actualDeliveryDate: salesOrders.actualDeliveryDate,
-          trackingNumber: salesOrders.trackingNumber,
+          actualDeliveryDate: salesOrders.deliveredAt,
           status: salesOrders.status,
-          notes: salesOrders.notes,
+          notes: salesOrders.customerNotes,
           internalNotes: salesOrders.internalNotes,
-          terms: salesOrders.terms,
+          terms: salesOrders.termsAndConditions,
           createdAt: salesOrders.createdAt,
           updatedAt: salesOrders.updatedAt,
-          sentAt: salesOrders.sentAt,
-          sentBy: salesOrders.sentBy,
           companyName: companies.companyName,
           leadDisplayId: sql<string | null>`${leads.leadId}`,
         })
@@ -3791,7 +3791,7 @@ export class DatabaseStorage implements IStorage {
     if (!order) return undefined;
 
     const [items, statusHistoryList, activitiesList] = await Promise.all([
-      db.select().from(salesOrderItems).where(eq(salesOrderItems.salesOrderId, id)),
+      db.select().from(salesOrderItems).where(eq(salesOrderItems.salesOrderId, id)).orderBy(asc(salesOrderItems.id)),
       db.select().from(salesOrderStatusHistory).where(eq(salesOrderStatusHistory.salesOrderId, id)).orderBy(desc(salesOrderStatusHistory.createdAt)),
       db.select().from(salesOrderActivities).where(eq(salesOrderActivities.salesOrderId, id)).orderBy(desc(salesOrderActivities.createdAt)),
     ]);
@@ -3859,6 +3859,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSalesOrderFromQuotation(quotationId: number, options: {
+    manualOrder: ManualSalesOrder;
     paymentTermsAdvancePercent?: number;
     paymentTermsCreditDays?: number;
     expectedDeliveryDate?: Date;
@@ -3880,6 +3881,8 @@ export class DatabaseStorage implements IStorage {
     internalNotes?: string;
     createdBy: string;
   }): Promise<SalesOrder> {
+    const manual = manualSalesOrderSchema.parse(options.manualOrder);
+    const totals = calculateSalesOrderTotals(manual);
     return await db.transaction(async (tx) => {
       const [currentQuotation] = await tx.select().from(quotations).where(eq(quotations.id, quotationId));
       if (!currentQuotation) {
@@ -3914,31 +3917,6 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Quotation was already converted by another user');
       }
 
-      // Get quotation items with product names
-      const quotationItemsList = await tx
-        .select({
-          id: quotationItems.id,
-          quotationId: quotationItems.quotationId,
-          productId: quotationItems.productId,
-          quantity: quotationItems.quantity,
-          unit: quotationItems.unit,
-          unitPrice: quotationItems.unitPrice,
-          totalPrice: quotationItems.totalPrice,
-          specifications: quotationItems.specifications,
-          productName: products.name,
-          productSku: products.productId,
-        })
-        .from(quotationItems)
-        .leftJoin(products, eq(quotationItems.productId, products.id))
-        .where(eq(quotationItems.quotationId, quotationId));
-
-      // Get company info if available
-      let companyData: Company | undefined;
-      if (quotation.companyId) {
-        const [c] = await tx.select().from(companies).where(eq(companies.id, quotation.companyId));
-        companyData = c;
-      }
-
       let assignedSalesRepId = quotation.createdBy;
       if (quotation.inquiryId) {
         const [inquiry] = await tx.select({ assignedTo: inquiries.assignedTo })
@@ -3947,14 +3925,13 @@ export class DatabaseStorage implements IStorage {
         assignedSalesRepId = inquiry?.assignedTo || assignedSalesRepId;
       }
 
-      // Generate SO number
+      // Serialize internal numbering across manual order creation transactions.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('manual-sales-order-number'))`);
       const soNumber = await this.getNextSalesOrderNumber();
 
-      // Calculate advance and balance amounts
-      const totalAmount = parseFloat(quotation.totalAmount?.toString() || '0');
-      const advancePercent = options.paymentTermsAdvancePercent || 0;
-      const advanceAmountDue = (totalAmount * advancePercent) / 100;
-      const balanceAmountDue = totalAmount - advanceAmountDue;
+      const cents = BigInt(totals.totalAmount.replace(".", ""));
+      const advanceCents = (cents * BigInt(Math.round(manual.advancePercent * 100)) + BigInt(5000)) / BigInt(10000);
+      const money = (value: bigint) => `${value / BigInt(100)}.${(value % BigInt(100)).toString().padStart(2, "0")}`;
 
       // Create sales order
       const orderData: InsertSalesOrder = {
@@ -3966,48 +3943,36 @@ export class DatabaseStorage implements IStorage {
         emailThreadId: quotation.emailThreadId,
         customerId: quotation.customerId,
         assignedToUserId: assignedSalesRepId,
-        orderDate: new Date(),
-        expectedDeliveryDate: options.expectedDeliveryDate,
-        subtotal: quotation.subtotal?.toString(),
-        discountPercent: quotation.discountPercent?.toString(),
-        discountAmount: quotation.discountAmount?.toString(),
-        taxPercent: quotation.taxPercent?.toString(),
-        taxAmount: quotation.taxAmount?.toString(),
-        totalAmount: quotation.totalAmount?.toString(),
-        currency: quotation.currency || 'USD',
-        priceType: quotation.priceType || 'ex_warehouse',
-        paymentTermsAdvancePercent: advancePercent.toString(),
-        paymentTermsCreditDays: options.paymentTermsCreditDays ?? 0,
-        paymentTermsNotes: quotation.paymentTerms || null,
-        advanceAmountDue: advanceAmountDue.toString(),
+        orderDate: new Date(manual.contractDate),
+        expectedDeliveryDate: manual.expectedDeliveryDate ? new Date(manual.expectedDeliveryDate) : null,
+        subtotal: totals.subtotal,
+        discountPercent: manual.discountPercent.toFixed(2),
+        discountAmount: totals.discountAmount,
+        taxPercent: manual.taxPercent.toFixed(2),
+        taxAmount: totals.taxAmount,
+        totalAmount: totals.totalAmount,
+        currency: manual.currency,
+        paymentTermsAdvancePercent: manual.advancePercent.toFixed(2),
+        paymentTermsCreditDays: manual.creditDays,
+        paymentTermsNotes: manual.paymentTerms,
+        advanceAmountDue: money(advanceCents),
         advanceAmountReceived: '0',
-        balanceAmountDue: balanceAmountDue.toString(),
+        balanceAmountDue: money(cents - advanceCents),
         balanceAmountReceived: '0',
         status: 'draft',
         paymentStatus: 'pending',
-        shippingAddress: options.shippingAddress || companyData?.factoryAddressStreet,
-        shippingCity: options.shippingCity || companyData?.factoryAddressCity,
-        shippingState: options.shippingState || companyData?.factoryAddressState,
-        shippingPostalCode: options.shippingPostalCode || companyData?.factoryAddressZip,
-        shippingCountry: options.shippingCountry || companyData?.factoryAddressCountry,
-        shippingMethod: options.shippingMethod,
-        billingAddress: options.billingAddress || companyData?.factoryAddressStreet,
-        billingCity: options.billingCity || companyData?.factoryAddressCity,
-        billingState: options.billingState || companyData?.factoryAddressState,
-        billingPostalCode: options.billingPostalCode || companyData?.factoryAddressZip,
-        billingCountry: options.billingCountry || companyData?.factoryAddressCountry,
-        portOfLoading: options.portOfLoading,
-        portOfDischarge: options.portOfDischarge,
-        creditPeriod: options.creditPeriod,
-        customerCompanyName: companyData?.companyName || quotation.customerCompanyName,
-        customerContactName: companyData?.primaryContactName,
-        customerEmail: companyData?.primaryEmail || quotation.customerEmail,
-        customerPhone: companyData?.primaryPhone,
-        includeGst: quotation.includeGst || false,
-        gstNumber: quotation.gstNumber,
-        gstPercentage: quotation.gstPercentage?.toString(),
-        internalNotes: options.internalNotes,
-        termsAndConditions: quotation.terms,
+        shippingAddress: manual.consignee.address,
+        shippingCountry: manual.destinationCountry,
+        billingAddress: manual.buyer.address,
+        portOfLoading: manual.portOfLoading,
+        portOfDischarge: manual.portOfDischarge,
+        customerCompanyName: manual.buyer.name,
+        customerContactName: manual.buyer.contactName,
+        customerEmail: manual.buyer.email,
+        customerPhone: manual.buyer.phone,
+        internalNotes: manual.internalNotes,
+        termsAndConditions: manual.additionalTerms,
+        contractDetails: manual,
         createdBy: options.createdBy,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -4015,20 +3980,17 @@ export class DatabaseStorage implements IStorage {
 
       const [newOrder] = await tx.insert(salesOrders).values(orderData).returning();
 
-      // Create sales order items from quotation items
-      for (const item of quotationItemsList) {
+      // These are the manually entered order lines, not copied quotation lines.
+      for (const [index, item] of manual.items.entries()) {
         await tx.insert(salesOrderItems).values({
           salesOrderId: newOrder.id,
-          productId: item.productId,
-          productName: item.productName || 'Product',
-          productSku: item.productSku || undefined,
-          description: item.specifications || undefined,
-          quantity: item.quantity?.toString(),
+          productName: item.productName,
+          description: item.productName,
+          quantity: item.quantity.toFixed(2),
           unit: item.unit,
-          unitPrice: item.unitPrice?.toString(),
-          totalPrice: item.totalPrice?.toString(),
-          specifications: item.specifications,
-          batchNumber: options.batchNumber || undefined,
+          unitPrice: item.unitPrice.toFixed(2),
+          totalPrice: totals.lineTotals[index],
+          batchNumber: item.batchNumber || null,
           createdAt: new Date(),
         });
       }
@@ -4037,10 +3999,10 @@ export class DatabaseStorage implements IStorage {
       await tx.insert(salesOrderActivities).values({
         salesOrderId: newOrder.id,
         activityType: 'created',
-        title: 'Sales Order Created from Quotation',
-        description: `Sales order ${newOrder.soNumber} was created from quotation ${quotation.quotationNumber}`,
+        title: 'Sales Order Created Manually',
+        description: `Sales order ${newOrder.soNumber} was manually prepared against quotation ${quotation.quotationId}`,
         performedBy: options.createdBy,
-        metadata: { quotationId, quotationNumber: quotation.quotationNumber },
+        metadata: { quotationId, quotationNumber: quotation.quotationId, entryMode: "manual" },
         createdAt: new Date(),
       });
 
@@ -4050,7 +4012,7 @@ export class DatabaseStorage implements IStorage {
         fromStatus: null,
         toStatus: 'draft',
         changedBy: options.createdBy,
-        notes: `Created from quotation ${quotation.quotationNumber}`,
+        notes: `Manually created against quotation ${quotation.quotationId}`,
         createdAt: new Date(),
       });
 
@@ -4214,6 +4176,11 @@ export class DatabaseStorage implements IStorage {
     const order = await this.getSalesOrderWithDetails(salesOrderId);
     if (!order) {
       throw new Error('Sales order not found');
+    }
+
+    if (order.contractDetails) {
+      const { generateSalesOrderContractPdf } = await import("./salesOrderContractPdf");
+      return generateSalesOrderContractPdf({ ...order, contractDetails: order.contractDetails, items: order.items || [] });
     }
 
     const { generateSalesOrderPDF } = await import('./pdf-generator');

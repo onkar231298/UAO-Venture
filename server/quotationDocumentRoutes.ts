@@ -5,7 +5,7 @@ import { db } from "./db";
 import { storage } from "./storage";
 import { isAuthenticated, isCustomerAuthenticated } from "./replitAuth";
 import { ObjectStorageService } from "./objectStorage";
-import { quotationDocuments } from "@shared/schema";
+import { quotationDocuments, quotationDocumentContents } from "@shared/schema";
 import { validateQuotationDocument } from "./quotationDocumentValidation";
 
 type ActorMode = "customer" | "staff";
@@ -109,8 +109,6 @@ async function listQuotationDocuments(req: any, res: any, mode: ActorMode) {
 }
 
 async function uploadQuotationDocument(req: any, res: any, mode: ActorMode) {
-  let objectPath: string | null = null;
-  const objectStorageService = new ObjectStorageService();
   try {
     const quotationId = Number(req.params.id);
     if (!Number.isInteger(quotationId) || quotationId <= 0) {
@@ -149,41 +147,27 @@ async function uploadQuotationDocument(req: any, res: any, mode: ActorMode) {
       documentType = "sales_signed_po";
     }
 
-    const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
-      body: file.buffer,
-      headers: { "Content-Type": validatedFile.mimeType },
+    // Save metadata and bytes atomically; no public URL or filesystem fallback.
+    const document = await db.transaction(async (tx) => {
+      const [saved] = await tx.insert(quotationDocuments).values({
+        quotationId,
+        documentType,
+        fileName: validatedFile.fileName,
+        objectPath: "database",
+        mimeType: validatedFile.mimeType,
+        fileSize: file.buffer.length,
+        uploaderRole: access.uploaderRole,
+        uploadedBy: access.userId,
+      }).returning();
+      await tx.insert(quotationDocumentContents).values({
+        documentId: saved.id,
+        contents: file.buffer,
+      });
+      return saved;
     });
-    if (!uploadResponse.ok) {
-      return res.status(502).json({ message: "Could not store the document securely. Please retry." });
-    }
-
-    objectPath = objectStorageService.normalizeObjectEntityPath(uploadUrl.split("?")[0]);
-    if (!objectPath.startsWith("/objects/")) {
-      throw new Error("The private upload returned an invalid object path");
-    }
-    const [document] = await db.insert(quotationDocuments).values({
-      quotationId,
-      documentType,
-      fileName: validatedFile.fileName,
-      objectPath,
-      mimeType: validatedFile.mimeType,
-      fileSize: file.size,
-      uploaderRole: access.uploaderRole,
-      uploadedBy: access.userId,
-    }).returning();
 
     res.status(201).json({ document: publicDocumentMetadata(document) });
   } catch (error) {
-    if (objectPath) {
-      try {
-        const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-        await objectFile.delete();
-      } catch (cleanupError) {
-        console.error("Could not clean up an unlinked quotation document:", cleanupError);
-      }
-    }
     console.error("Error uploading quotation document:", error);
     res.status(500).json({ message: "Could not upload the document" });
   }
@@ -208,6 +192,22 @@ async function downloadQuotationDocument(req: any, res: any, mode: ActorMode) {
       .limit(1);
     if (!document) return res.status(404).json({ message: "Document not found" });
 
+    if (document.objectPath === "database") {
+      const [stored] = await db.select()
+        .from(quotationDocumentContents)
+        .where(eq(quotationDocumentContents.documentId, document.id)).limit(1);
+      if (!stored) return res.status(404).json({ message: "Document contents not found" });
+      res.set({
+        "Content-Type": document.mimeType,
+        "Content-Length": String(stored.contents.length),
+        "Content-Disposition": `attachment; filename="${document.fileName.replace(/["\\\r\n]/g, "_")}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.send(stored.contents);
+    }
+
+    // Keep previously stored object-storage documents downloadable.
     const objectFile = await new ObjectStorageService().getObjectEntityFile(document.objectPath);
     const [metadata] = await objectFile.getMetadata();
     res.set({

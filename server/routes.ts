@@ -96,6 +96,7 @@ import {
 } from "@shared/schema";
 import { eq, and, or, ne, isNotNull, isNull, desc, asc, inArray, sql, gte, lte, lt } from "drizzle-orm";
 import { z } from "zod";
+import { manualSalesOrderSchema, calculateSalesOrderTotals } from "@shared/salesOrderContract";
 import bcrypt from "bcryptjs";
 import { companyLengthErrors } from "./companyValidation";
 import multer from "multer";
@@ -5721,6 +5722,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role === 'customer' && order.customerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
       }
+      if (user.role?.includes('sales') && !user.role?.includes('admin') &&
+          order.assignedToUserId !== userId) {
+        return res.status(403).json({ message: "This sales order is not assigned to you" });
+      }
 
       res.json(order);
     } catch (error) {
@@ -5745,10 +5750,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) {
         return res.status(404).json({ message: "Sales order not found" });
       }
-
-      // Check access for customers
       if (user.role === 'customer' && order.customerId !== userId) {
         return res.status(403).json({ message: "Access denied" });
+      }
+      if (user.role?.includes('sales') && !user.role?.includes('admin') &&
+          order.assignedToUserId !== userId) {
+        return res.status(403).json({ message: "This sales order is not assigned to you" });
       }
 
       // Generate PDF
@@ -5779,28 +5786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const { 
-        quotationId: rawQuotationId,
-        paymentTermsAdvancePercent,
-        paymentTermsCreditDays,
-        expectedDeliveryDate,
-        shippingAddress,
-        shippingCity,
-        shippingState,
-        shippingPostalCode,
-        shippingCountry,
-        shippingMethod,
-        billingAddress,
-        billingCity,
-        billingState,
-        billingPostalCode,
-        billingCountry,
-        portOfLoading,
-        portOfDischarge,
-        batchNumber,
-        creditPeriod,
-        internalNotes
-      } = req.body;
+      const { quotationId: rawQuotationId } = req.body;
 
       const quotationId = Number(rawQuotationId);
       if (!Number.isInteger(quotationId) || quotationId <= 0) {
@@ -5833,26 +5819,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only accepted quotations can be converted to sales orders" });
       }
 
+      const manualOrder = manualSalesOrderSchema.safeParse(req.body.manualOrder);
+      if (!manualOrder.success) {
+        return res.status(400).json({
+          message: "Complete the Create SO form before saving this order",
+          errors: manualOrder.error.flatten(),
+        });
+      }
+      try {
+        calculateSalesOrderTotals(manualOrder.data);
+      } catch (error) {
+        return res.status(400).json({ message: error instanceof Error ? error.message : "Invalid order amounts" });
+      }
+
       const salesOrder = await storage.createSalesOrderFromQuotation(quotationId, {
-        paymentTermsAdvancePercent: paymentTermsAdvancePercent ? parseFloat(paymentTermsAdvancePercent) : undefined,
-        paymentTermsCreditDays: paymentTermsCreditDays ? parseInt(paymentTermsCreditDays) : undefined,
-        expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : undefined,
-        shippingAddress,
-        shippingCity,
-        shippingState,
-        shippingPostalCode,
-        shippingCountry,
-        shippingMethod,
-        billingAddress,
-        billingCity,
-        billingState,
-        billingPostalCode,
-        billingCountry,
-        portOfLoading,
-        portOfDischarge,
-        batchNumber,
-        creditPeriod,
-        internalNotes,
+        manualOrder: manualOrder.data,
         createdBy: userId,
       });
 
@@ -5980,8 +5961,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) {
         return res.status(404).json({ message: "Sales order not found" });
       }
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin && order.assignedToUserId !== userId) {
+        return res.status(403).json({ message: "You can only edit sales orders assigned to you" });
+      }
 
-      const updatedOrder = await storage.updateSalesOrder(parseInt(id), req.body);
+      const editSchema = z.object({
+        expectedDeliveryDate: z.string().max(40).nullable().optional(),
+        shippingAddress: z.string().max(5000).nullable().optional(),
+        shippingCity: z.string().max(100).nullable().optional(),
+        shippingState: z.string().max(100).nullable().optional(),
+        shippingPostalCode: z.string().max(20).nullable().optional(),
+        shippingCountry: z.string().max(100).nullable().optional(),
+        shippingMethod: z.string().max(100).nullable().optional(),
+        paymentTermsAdvancePercent: z.coerce.number().min(0).max(100).optional(),
+        paymentTermsCreditDays: z.coerce.number().int().min(0).max(3650).optional(),
+        paymentTermsNotes: z.string().max(5000).nullable().optional(),
+        internalNotes: z.string().max(10000).nullable().optional(),
+        customerNotes: z.string().max(10000).nullable().optional(),
+        termsAndConditions: z.string().max(20000).nullable().optional(),
+      }).strict();
+      const parsedEdit = editSchema.safeParse(req.body);
+      if (!parsedEdit.success || Object.keys(parsedEdit.data || {}).length === 0) {
+        return res.status(400).json({ message: "Enter valid Sales Order details to save" });
+      }
+      const updateData: Record<string, unknown> = { ...parsedEdit.data };
+      if (parsedEdit.data.expectedDeliveryDate !== undefined) {
+        const date = parsedEdit.data.expectedDeliveryDate
+          ? new Date(parsedEdit.data.expectedDeliveryDate)
+          : null;
+        if (date && Number.isNaN(date.getTime())) {
+          return res.status(400).json({ message: "Enter a valid expected delivery date" });
+        }
+        updateData.expectedDeliveryDate = date;
+      }
+
+      const updatedOrder = await storage.updateSalesOrder(parseInt(id), updateData as any);
       
       // Log activity
       await storage.addSalesOrderActivity({
@@ -6025,6 +6040,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.getSalesOrder(parseInt(id));
       if (!order) {
         return res.status(404).json({ message: "Sales order not found" });
+      }
+      const isAdmin = user.role === "admin" || user.role === "super_admin";
+      if (!isAdmin && order.assignedToUserId !== userId) {
+        return res.status(403).json({ message: "You can only update sales orders assigned to you" });
       }
 
       const updatedOrder = await storage.updateSalesOrderStatus(parseInt(id), status, userId, notes);

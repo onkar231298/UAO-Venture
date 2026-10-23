@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import QuotationForm from "@/components/QuotationForm";
 import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
 import QuotationDocumentsPanel from "@/components/crm/QuotationDocumentsPanel";
+import SalesOrderEditDialog from "@/components/crm/SalesOrderEditDialog";
 import type { Inquiry } from "@shared/schema";
 
 interface SalesMetrics {
@@ -95,9 +96,11 @@ export default function MySalesAndQuotations() {
   const [selectedSalesOrder, setSelectedSalesOrder] = useState<SalesOrder | null>(null);
   const [showQuotationDetail, setShowQuotationDetail] = useState(false);
   const [showSalesOrderDetail, setShowSalesOrderDetail] = useState(false);
+  const [showSalesOrderEdit, setShowSalesOrderEdit] = useState(false);
   const [showQuotationActivity, setShowQuotationActivity] = useState(false);
   const [showSalesOrderActivity, setShowSalesOrderActivity] = useState(false);
   const [downloadingQuotationId, setDownloadingQuotationId] = useState<number | null>(null);
+  const [downloadingSalesOrderId, setDownloadingSalesOrderId] = useState<number | null>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<number | null>(null);
   const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null);
 
@@ -267,20 +270,33 @@ export default function MySalesAndQuotations() {
   };
 
   const handleDownloadSalesOrderPdf = async (soId: number) => {
+    setDownloadingSalesOrderId(soId);
     try {
       const response = await fetch(`/api/sales-orders/${soId}/pdf`, {
         credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to download PDF');
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || 'Failed to download Sales Order PDF');
+      }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `sales-order-${soId}.pdf`;
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      a.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error('Failed to download PDF:', error);
+      toast({
+        title: "Could not download Sales Order PDF",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingSalesOrderId(null);
     }
   };
 
@@ -677,11 +693,26 @@ export default function MySalesAndQuotations() {
                                   <Activity className="h-4 w-4" />
                                 </Button>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleDownloadSalesOrderPdf(order.id)}
+                                  disabled={downloadingSalesOrderId === order.id}
+                                  data-testid={`button-download-sales-order-pdf-${order.id}`}
                                 >
-                                  <Download className="h-4 w-4" />
+                                  <Download className="mr-1 h-4 w-4" />
+                                  {downloadingSalesOrderId === order.id ? "Preparing..." : "Download PDF"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedSalesOrder(order);
+                                    setShowSalesOrderEdit(true);
+                                  }}
+                                  data-testid={`button-edit-sales-order-${order.id}`}
+                                >
+                                  <Pencil className="mr-1 h-4 w-4" />
+                                  Edit
                                 </Button>
                               </div>
                             </td>
@@ -713,6 +744,12 @@ export default function MySalesAndQuotations() {
         salesOrder={selectedSalesOrder}
         open={showSalesOrderDetail}
         onClose={() => setShowSalesOrderDetail(false)}
+      />
+
+      <SalesOrderEditDialog
+        order={selectedSalesOrder}
+        open={showSalesOrderEdit}
+        onClose={() => setShowSalesOrderEdit(false)}
       />
 
       <QuotationActivityDialog

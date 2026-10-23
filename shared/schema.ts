@@ -13,11 +13,13 @@ import {
   uuid,
   foreignKey,
   date,
+  customType,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { isSafeHeroActionDestination } from "./heroSlideActions";
+import type { ManualSalesOrder } from "./salesOrderContract";
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -941,6 +943,17 @@ export const quotationDocuments = pgTable("quotation_documents", {
   index("quotation_documents_uploader_idx").on(table.uploadedBy),
 ]);
 
+// Kept separate so document listings never load confidential file contents.
+const documentBytes = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() { return "bytea"; },
+});
+
+export const quotationDocumentContents = pgTable("quotation_document_contents", {
+  documentId: integer("document_id").primaryKey()
+    .references(() => quotationDocuments.id, { onDelete: "cascade" }),
+  contents: documentBytes("contents").notNull(),
+});
+
 // Audit record created only when a customer explicitly accepts a quotation.
 export const quotationTermsAcceptances = pgTable("quotation_terms_acceptances", {
   id: serial("id").primaryKey(),
@@ -1067,6 +1080,7 @@ export const salesOrders = pgTable("sales_orders", {
   internalNotes: text("internal_notes"),
   customerNotes: text("customer_notes"),
   termsAndConditions: text("terms_and_conditions"),
+  contractDetails: jsonb("contract_details").$type<ManualSalesOrder | null>(),
   
   // Audit
   createdBy: varchar("created_by").references(() => users.id),

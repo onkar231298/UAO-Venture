@@ -43,7 +43,7 @@ export class ObjectStorageService {
   constructor() {}
 
   // Gets the public object search paths.
-  getPublicObjectSearchPaths(): Array<string> {
+  getPublicObjectSearchPaths(requireConfigured: boolean = true): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
     const paths = Array.from(
       new Set(
@@ -53,7 +53,7 @@ export class ObjectStorageService {
           .filter((path) => path.length > 0)
       )
     );
-    if (paths.length === 0) {
+    if (paths.length === 0 && requireConfigured) {
       throw new Error(
         "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
           "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
@@ -194,7 +194,7 @@ export class ObjectStorageService {
     const entityId = parts.slice(1).join("/");
     
     // Try public paths first (for category images uploaded via public endpoint)
-    const publicSearchPaths = this.getPublicObjectSearchPaths();
+    const publicSearchPaths = this.getPublicObjectSearchPaths(false);
     for (const publicPath of publicSearchPaths) {
       let entityDir = publicPath;
       if (!entityDir.endsWith("/")) {
@@ -243,7 +243,7 @@ export class ObjectStorageService {
     const rawObjectPath = url.pathname;
   
     // Try public paths first (for category images)
-    const publicSearchPaths = this.getPublicObjectSearchPaths();
+    const publicSearchPaths = this.getPublicObjectSearchPaths(false);
     for (const publicPath of publicSearchPaths) {
       // Remove leading slash from publicPath for comparison
       const publicPathNormalized = publicPath.startsWith('/') ? publicPath.slice(1) : publicPath;
