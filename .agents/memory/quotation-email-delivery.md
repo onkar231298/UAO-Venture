@@ -1,6 +1,6 @@
 ---
-name: Quotation email delivery
-description: The current scope and sender identity for customer quotation emails.
+name: Quotation acceptance and Sales Orders
+description: Customer acceptance channels, staff review, Sales Order gating, and deferred quotation email delivery.
 ---
 
 Do not send quotation emails yet. Publishing a quote should make it available in the customer dashboard and as a downloadable PDF. A disabled “Email customer (soon)” option may be shown while integration is deferred. When transactional email is implemented later, send from the assigned salesperson's G Suite account.
@@ -11,8 +11,10 @@ Do not send quotation emails yet. Publishing a quote should make it available in
 
 ## Acceptance and Sales Order conversion
 
-Customer acceptance only records the quotation as accepted; it must not create a Sales Order automatically. A sales rep or admin deliberately creates the draft Sales Order after portal acceptance or after confirming approval through email or another channel.
+Acceptance in the customer dashboard marks the quotation accepted. A customer-uploaded signed quotation remains pending until an authorized staff member reviews it. Staff can also record a confirmed acceptance received by email, phone, WhatsApp, or another channel, including its date and supporting evidence.
 
-**Why:** The owner chose staff-controlled conversion so external confirmations can be acted on manually while transactional email remains deferred.
+Only accepted quotations can create a linked draft Sales Order. The assigned sales representative or an admin deliberately creates it, at any time after acceptance; conversion must never happen automatically or from a sent, unaccepted quotation. Keep the order tied to the enquiry's assigned sales representative and copy the accepted quotation's items, prices, and terms. Quotation email delivery remains deferred.
 
-**How to apply:** Keep customer accept/reject actions separate from staff conversion. Make conversion available for sent or accepted quotations, enforce sales-rep assignment, and prevent the same quotation from creating multiple orders.
+**Why:** The owner requires staff review for uploaded signatures, supports acceptance through multiple channels, and explicitly limits Sales Order creation to accepted quotations while allowing assigned sales staff and admins to do it later.
+
+**How to apply:** Keep dashboard acceptance, staff-recorded acceptance, and Sales Order creation as distinct steps. Audit the acceptance channel and evidence, enforce enquiry assignment for sales users, and prevent duplicate orders.

@@ -294,7 +294,7 @@ export default function QuotationNegotiationsPage() {
                       Lead Created
                     </Badge>
                   )}
-                  {['sent', 'accepted'].includes(quotation.status) && !quotation.salesOrderId && (
+                  {quotation.status === 'accepted' && !quotation.salesOrderId && (
                     <QuotationToSalesOrderButton
                       quotationId={quotation.id}
                       quotationNumber={quotation.quotationId}

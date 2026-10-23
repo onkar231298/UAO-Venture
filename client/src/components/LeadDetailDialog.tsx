@@ -704,6 +704,7 @@ export default function LeadDetailDialog({ lead, open, onOpenChange, salesReps =
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/sales-orders'] });
       setShowConvertToSODialog(false);
       setSelectedQuoteForSO(null);
@@ -2702,7 +2703,7 @@ Packaging: Standard export packaging`,
                                   Resend Quote
                                 </Button>
                               ) : null}
-                              {(quote.status === 'accepted' || quote.status === 'sent') && !quote.salesOrderId && (
+                              {quote.status === 'accepted' && !quote.salesOrderId && (
                                 <Button 
                                   size="sm" 
                                   variant="outline"

@@ -216,6 +216,7 @@ import { stringify } from "csv-stringify/sync";
 import { Readable } from "stream";
 import bcrypt from "bcryptjs";
 import { encryptEmailCredential } from "./email/credentials";
+import { canConvertQuotationToSalesOrder, isQuotationExpired } from "./quotationAcceptance";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -3373,6 +3374,16 @@ export class DatabaseStorage implements IStorage {
           currency: quotations.currency,
           priceType: quotations.priceType,
           status: quotations.status,
+          pendingAcceptanceReview: sql<boolean>`(
+            ${quotations.status} IN ('sent', 'expired')
+            AND EXISTS (
+              SELECT 1
+              FROM quotation_documents qd
+              WHERE qd.quotation_id = ${quotations.id}
+                AND qd.document_type = 'customer_signed_quotation'
+                AND qd.uploader_role = 'customer'
+            )
+          )`,
           terms: quotations.terms,
           notes: quotations.notes,
           createdBy: quotations.createdBy,
@@ -3419,8 +3430,17 @@ export class DatabaseStorage implements IStorage {
         .where(whereClause),
     ]);
 
+    const visibleQuotations = quotationsResult.map((quotation) => {
+      const expired = quotation.status === "sent" && isQuotationExpired(quotation.validUntil);
+      return {
+        ...quotation,
+        status: expired ? "expired" : quotation.status,
+        pendingAcceptanceReview: quotation.pendingAcceptanceReview,
+      };
+    });
+
     return {
-      quotations: quotationsResult,
+      quotations: visibleQuotations,
       total: totalResult[0].count,
     };
   }
@@ -3868,8 +3888,8 @@ export class DatabaseStorage implements IStorage {
       if (currentQuotation.salesOrderId || currentQuotation.status === 'converted') {
         throw new Error('Quotation already converted to a sales order');
       }
-      if (!['sent', 'accepted'].includes(currentQuotation.status)) {
-        throw new Error('Only sent or accepted quotations can be converted to sales orders');
+      if (!canConvertQuotationToSalesOrder(currentQuotation.status)) {
+        throw new Error('Only accepted quotations can be converted to sales orders');
       }
 
       const [existingOrder] = await tx.select({ id: salesOrders.id })
@@ -3880,13 +3900,13 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Quotation already has a sales order');
       }
 
-      // Claim the quotation with a conditional update so concurrent requests cannot
-      // create two orders from the same sent or accepted quotation.
+      // Claim the accepted quotation with a conditional update so concurrent requests cannot
+      // create two orders from the same quotation.
       const [quotation] = await tx.update(quotations)
         .set({ status: 'converted', updatedAt: new Date() })
         .where(and(
           eq(quotations.id, quotationId),
-          eq(quotations.status, currentQuotation.status),
+          eq(quotations.status, 'accepted'),
           isNull(quotations.salesOrderId),
         ))
         .returning();
@@ -3919,6 +3939,14 @@ export class DatabaseStorage implements IStorage {
         companyData = c;
       }
 
+      let assignedSalesRepId = quotation.createdBy;
+      if (quotation.inquiryId) {
+        const [inquiry] = await tx.select({ assignedTo: inquiries.assignedTo })
+          .from(inquiries)
+          .where(eq(inquiries.id, quotation.inquiryId));
+        assignedSalesRepId = inquiry?.assignedTo || assignedSalesRepId;
+      }
+
       // Generate SO number
       const soNumber = await this.getNextSalesOrderNumber();
 
@@ -3937,7 +3965,7 @@ export class DatabaseStorage implements IStorage {
         leadId: quotation.leadId,
         emailThreadId: quotation.emailThreadId,
         customerId: quotation.customerId,
-        assignedToUserId: quotation.createdBy,
+        assignedToUserId: assignedSalesRepId,
         orderDate: new Date(),
         expectedDeliveryDate: options.expectedDeliveryDate,
         subtotal: quotation.subtotal?.toString(),
@@ -3950,6 +3978,7 @@ export class DatabaseStorage implements IStorage {
         priceType: quotation.priceType || 'ex_warehouse',
         paymentTermsAdvancePercent: advancePercent.toString(),
         paymentTermsCreditDays: options.paymentTermsCreditDays ?? 0,
+        paymentTermsNotes: quotation.paymentTerms || null,
         advanceAmountDue: advanceAmountDue.toString(),
         advanceAmountReceived: '0',
         balanceAmountDue: balanceAmountDue.toString(),
@@ -3978,7 +4007,7 @@ export class DatabaseStorage implements IStorage {
         gstNumber: quotation.gstNumber,
         gstPercentage: quotation.gstPercentage?.toString(),
         internalNotes: options.internalNotes,
-        termsAndConditions: quotation.termsAndConditions,
+        termsAndConditions: quotation.terms,
         createdBy: options.createdBy,
         createdAt: new Date(),
         updatedAt: new Date(),

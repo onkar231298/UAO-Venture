@@ -634,6 +634,11 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 Quote Sent
                               </Badge>
                             )}
+                            {relatedQuotation?.pendingAcceptanceReview && (
+                              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+                                Signed copy awaiting review
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
                             {canAssignInquiries && (
@@ -741,7 +746,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                                 </Button>
                               )}
                               {relatedQuotation &&
-                                ["sent", "accepted"].includes(relatedQuotation.status) &&
+                                relatedQuotation.status === "accepted" &&
                                 !relatedQuotation.salesOrderId && (
                                   <QuotationToSalesOrderButton
                                     quotationId={relatedQuotation.id}

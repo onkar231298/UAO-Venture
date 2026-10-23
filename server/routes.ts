@@ -165,6 +165,13 @@ import { getProposedQuotationTermsText } from "./quotationTerms";
 import { registerQuotationDocumentRoutes } from "./quotationDocumentRoutes";
 import { registerCustomerEmailTemplateRoutes } from "./customerEmailTemplateRoutes";
 import { sendCustomerTransactionalEmail } from "./customerTransactionalEmail";
+import {
+  canConvertQuotationToSalesOrder,
+  isAcceptanceWithinQuotationValidity,
+  isQuotationExpired,
+  parseAcceptanceDate,
+  staffQuotationAcceptanceSchema,
+} from "./quotationAcceptance";
 
 async function canManageQuotation(
   userId: string,
@@ -4745,6 +4752,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Record customer acceptance received outside the portal, or approve a signed
+  // quotation copy uploaded by the customer. Acceptance is audited and never
+  // creates a Sales Order automatically.
+  app.post('/api/quotations/:id/acceptance', isAuthenticated, async (req: any, res) => {
+    try {
+      const quotationId = Number(req.params.id);
+      if (!Number.isInteger(quotationId) || quotationId <= 0) {
+        return res.status(400).json({ message: "Invalid quotation ID" });
+      }
+
+      const userId = String(req.user?.claims?.sub || "");
+      const user = userId ? await storage.getUser(userId) : undefined;
+      if (!user) return res.status(401).json({ message: "Staff account not found" });
+      if (!user.role?.includes("sales") && !["admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Sales or administrator access is required" });
+      }
+
+      const parsed = staffQuotationAcceptanceSchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: "Enter the acceptance channel and date, and select a signed quotation when reviewing an upload",
+          errors: parsed.error.errors,
+        });
+      }
+      const payload = parsed.data;
+      const acceptedAt = parseAcceptanceDate(payload.acceptedDate);
+      if (!acceptedAt) {
+        return res.status(400).json({ message: "Enter a real acceptance date" });
+      }
+
+      const currentQuotation = await storage.getQuotation(quotationId);
+      if (!currentQuotation) return res.status(404).json({ message: "Quotation not found" });
+      if (!(await canManageQuotation(userId, user.role, currentQuotation))) {
+        return res.status(403).json({ message: "You can only record acceptance for quotations assigned to you" });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const [quotation] = await tx.select()
+          .from(quotations)
+          .where(eq(quotations.id, quotationId))
+          .for("update");
+        if (!quotation) return { kind: "not_found" as const };
+        if (!["sent", "expired"].includes(quotation.status)) return { kind: "not_sent" as const };
+        if (quotation.status === "expired" && !quotation.validUntil) {
+          return { kind: "outside_validity" as const };
+        }
+        if (!isAcceptanceWithinQuotationValidity(acceptedAt, quotation.validUntil)) {
+          return { kind: "outside_validity" as const };
+        }
+
+        let customerId = quotation.customerId || null;
+        if (quotation.inquiryId) {
+          const [inquiry] = await tx.select({
+            assignedTo: inquiries.assignedTo,
+            customerId: inquiries.customerId,
+          })
+            .from(inquiries)
+            .where(eq(inquiries.id, quotation.inquiryId))
+            .for("update");
+          if (user.role?.includes("sales") && inquiry?.assignedTo !== userId) {
+            return { kind: "forbidden" as const };
+          }
+          customerId ||= inquiry?.customerId || null;
+        } else if (user.role?.includes("sales") && quotation.createdBy !== userId) {
+          return { kind: "forbidden" as const };
+        }
+
+        let signedDocument: typeof quotationDocuments.$inferSelect | undefined;
+        if (payload.channel === "signed_quotation_upload") {
+          const [document] = await tx.select()
+            .from(quotationDocuments)
+            .where(and(
+              eq(quotationDocuments.id, payload.documentId!),
+              eq(quotationDocuments.quotationId, quotationId),
+              eq(quotationDocuments.documentType, "customer_signed_quotation"),
+              eq(quotationDocuments.uploaderRole, "customer"),
+            ))
+            .for("update");
+          if (!document) return { kind: "document_not_found" as const };
+          signedDocument = document;
+        }
+
+        const [updatedQuotation] = await tx.update(quotations)
+          .set({
+            status: "accepted",
+            customerId,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(quotations.id, quotationId),
+            inArray(quotations.status, ["sent", "expired"]),
+          ))
+          .returning();
+        if (!updatedQuotation) return { kind: "not_sent" as const };
+
+        const channelLabels: Record<typeof payload.channel, string> = {
+          email: "email",
+          phone: "phone",
+          whatsapp: "WhatsApp",
+          other: "another channel",
+          signed_quotation_upload: "customer-uploaded signed quotation",
+        };
+        const evidence = [
+          `Customer confirmation recorded through ${channelLabels[payload.channel]}.`,
+          signedDocument
+            ? `Reviewed file: ${signedDocument.fileName} (document ${signedDocument.id}).`
+            : "",
+          payload.notes,
+        ].filter(Boolean).join("\n");
+        await tx.insert(quotationTermsAcceptances).values({
+          quotationId,
+          customerId,
+          customerCompanyName: updatedQuotation.customerCompanyName || null,
+          termsTemplateId: updatedQuotation.termsTemplateId || null,
+          termsTemplateVersion: updatedQuotation.termsTemplateVersion || null,
+          acceptedAt,
+          acceptanceMethod: payload.channel === "signed_quotation_upload"
+            ? "customer_uploaded_signed_quotation_reviewed"
+            : `staff_verified_${payload.channel}`,
+          supportingEvidence: evidence,
+          recordedByUserId: userId,
+        });
+        return { kind: "accepted" as const, quotation: updatedQuotation };
+      });
+
+      if (result.kind === "not_found") return res.status(404).json({ message: "Quotation not found" });
+      if (result.kind === "forbidden") {
+        return res.status(403).json({ message: "This quotation is no longer assigned to you" });
+      }
+      if (result.kind === "document_not_found") {
+        return res.status(404).json({ message: "Customer-uploaded signed quotation not found" });
+      }
+      if (result.kind === "outside_validity") {
+        return res.status(409).json({ message: "The recorded acceptance date is after the quotation validity date" });
+      }
+      if (result.kind === "not_sent") {
+        return res.status(409).json({ message: "Only a sent, unaccepted quotation can be marked accepted" });
+      }
+      return res.json(result.quotation);
+    } catch (error) {
+      console.error("Error recording quotation acceptance:", error);
+      return res.status(500).json({ message: "Could not record quotation acceptance" });
+    }
+  });
+
   // Accept quotation (for customers)
   app.patch('/api/quotations/:id/accept', isCustomerAuthenticated, async (req: any, res) => {
     try {
@@ -4767,6 +4919,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const acceptedAt = new Date();
+      if (isQuotationExpired(currentQuotation.validUntil, acceptedAt)) {
+        return res.status(409).json({ message: "This quotation has expired and can no longer be accepted" });
+      }
       const [quotation] = await db.transaction(async (tx) => {
         const [updatedQuotation] = await tx.update(quotations)
           .set({ status: "accepted", customerId, updatedAt: acceptedAt })
@@ -5647,8 +5802,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (quotation.status !== 'accepted' && quotation.status !== 'sent') {
-        return res.status(400).json({ message: "Only accepted or sent quotations can be converted to sales orders" });
+      if (!canConvertQuotationToSalesOrder(quotation.status)) {
+        return res.status(400).json({ message: "Only accepted quotations can be converted to sales orders" });
       }
 
       const salesOrder = await storage.createSalesOrderFromQuotation(quotationId, {

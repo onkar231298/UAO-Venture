@@ -294,6 +294,23 @@ export default function CustomerDashboard() {
     }
   };
 
+  const getQuotationDisplayStatus = (quotation: any) => {
+    if (quotation.status !== "sent" || !quotation.validUntil) return quotation.status;
+    const parsedExpiry = quotation.validUntil instanceof Date
+      ? quotation.validUntil
+      : new Date(quotation.validUntil);
+    const expiryDate = typeof quotation.validUntil === "string" && /^\d{4}-\d{2}-\d{2}$/.test(quotation.validUntil)
+      ? quotation.validUntil
+      : Number.isNaN(parsedExpiry.getTime())
+        ? null
+        : parsedExpiry.toISOString().slice(0, 10);
+    return expiryDate && expiryDate < new Date().toISOString().slice(0, 10)
+      ? "expired"
+      : quotation.status;
+  };
+
+  const canAcceptQuotation = (quotation: any) => getQuotationDisplayStatus(quotation) === "sent";
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'urgent': return 'border-red-500 text-red-700';
@@ -683,14 +700,14 @@ export default function CustomerDashboard() {
                                               </p>
                                             </div>
                                             <Badge className={`${
-                                              quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                              getQuotationDisplayStatus(quote) === 'sent' ? 'bg-blue-100 text-blue-800' :
                                               quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                               quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                               quote.status === 'converted' ? 'bg-purple-100 text-purple-800' :
-                                              quote.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                              getQuotationDisplayStatus(quote) === 'expired' ? 'bg-red-100 text-red-800' :
                                               'bg-gray-100 text-gray-800'
                                             }`}>
-                                              {quote.status}
+                                              {getQuotationDisplayStatus(quote)}
                                             </Badge>
                                           </div>
                                           
@@ -740,7 +757,7 @@ export default function CustomerDashboard() {
                                               <FileText className="w-4 h-4 mr-1" />
                                               Download PDF
                                             </Button>
-                                            {quote.status === 'sent' && (
+                                            {canAcceptQuotation(quote) && (
                                               <>
                                               <Button 
                                                 size="sm"
@@ -992,14 +1009,14 @@ export default function CustomerDashboard() {
                                                 </p>
                                               </div>
                                               <Badge className={`${
-                                                quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                                getQuotationDisplayStatus(quote) === 'sent' ? 'bg-blue-100 text-blue-800' :
                                                 quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                                 quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                                 quote.status === 'converted' ? 'bg-purple-100 text-purple-800' :
-                                                quote.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                                getQuotationDisplayStatus(quote) === 'expired' ? 'bg-red-100 text-red-800' :
                                                 'bg-gray-100 text-gray-800'
                                               }`}>
-                                                {quote.status}
+                                                {getQuotationDisplayStatus(quote)}
                                               </Badge>
                                             </div>
                                             
@@ -1051,7 +1068,7 @@ export default function CustomerDashboard() {
                                                 <FileText className="w-4 h-4 mr-1" />
                                                 Download PDF
                                               </Button>
-                                              {quote.status === 'sent' && (
+                                              {canAcceptQuotation(quote) && (
                                                 <>
                                                 <Button 
                                                   size="sm"
@@ -1235,14 +1252,14 @@ export default function CustomerDashboard() {
                           <div className="flex items-center gap-2 mb-3">
                             <span className="font-semibold text-lg">{quotation.quotationId}</span>
                             <Badge className={`${
-                              quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                              getQuotationDisplayStatus(quotation) === 'sent' ? 'bg-blue-100 text-blue-800' :
                               quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
                               quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
                               quotation.status === 'converted' ? 'bg-purple-100 text-purple-800' :
-                              quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                              getQuotationDisplayStatus(quotation) === 'expired' ? 'bg-red-100 text-red-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {quotation.status}
+                              {getQuotationDisplayStatus(quotation)}
                             </Badge>
                           </div>
                           
@@ -1299,14 +1316,14 @@ export default function CustomerDashboard() {
                                         <p><span className="font-medium">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString()}</p>
                                         <p><span className="font-medium">Status:</span> 
                                           <Badge className={`ml-2 ${
-                                            quotation.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                            getQuotationDisplayStatus(quotation) === 'sent' ? 'bg-blue-100 text-blue-800' :
                                             quotation.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                             quotation.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                             quotation.status === 'converted' ? 'bg-purple-100 text-purple-800' :
-                                            quotation.status === 'expired' ? 'bg-red-100 text-red-800' :
+                                            getQuotationDisplayStatus(quotation) === 'expired' ? 'bg-red-100 text-red-800' :
                                             'bg-gray-100 text-gray-800'
                                           }`}>
-                                            {quotation.status}
+                                            {getQuotationDisplayStatus(quotation)}
                                           </Badge>
                                         </p>
                                       </div>
@@ -1369,7 +1386,7 @@ export default function CustomerDashboard() {
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3 pt-4 border-t">
-                                  {quotation.status === 'sent' && (
+                                  {canAcceptQuotation(quotation) && (
                                     <>
                                     <Button 
                                       className="bg-green-600 hover:bg-green-700"
@@ -1406,7 +1423,7 @@ export default function CustomerDashboard() {
                             </DialogContent>
                           </Dialog>
                           
-                          {quotation.status === 'sent' && (
+                          {canAcceptQuotation(quotation) && (
                             <>
                             <Button 
                               size="sm" 
@@ -1657,8 +1674,8 @@ export default function CustomerDashboard() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-lg">{quotation.quotationId}</h3>
-                        <Badge className={getStatusColor(quotation.status)}>
-                          {quotation.status}
+                        <Badge className={getStatusColor(getQuotationDisplayStatus(quotation))}>
+                          {getQuotationDisplayStatus(quotation)}
                         </Badge>
                         {quotation.currency && (
                           <Badge variant="outline" className="text-xs">
@@ -1739,8 +1756,8 @@ export default function CustomerDashboard() {
                               </div>
                               <div>
                                 <h4 className="font-semibold text-sm text-gray-600">Status</h4>
-                                <Badge className={getStatusColor(quotation.status)}>
-                                  {quotation.status}
+                                <Badge className={getStatusColor(getQuotationDisplayStatus(quotation))}>
+                                  {getQuotationDisplayStatus(quotation)}
                                 </Badge>
                               </div>
                               <div>
@@ -1863,7 +1880,7 @@ export default function CustomerDashboard() {
 
                             {/* Action Buttons */}
                             <div className="flex flex-wrap gap-3 pt-4 border-t">
-                              {quotation.status === 'sent' && (
+                              {canAcceptQuotation(quotation) && (
                                 <>
                                   <Button 
                                     className="bg-green-600 hover:bg-green-700"
@@ -1940,7 +1957,7 @@ export default function CustomerDashboard() {
                           </a>
                         </Button>
                       </div>
-                      {quotation.status === 'sent' && (
+                      {canAcceptQuotation(quotation) && (
                         <>
                         <Button 
                           size="sm" 

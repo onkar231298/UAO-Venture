@@ -65,7 +65,7 @@ export default function QuotationToSalesOrderButton({
         className={className}
         onClick={() => setOpen(true)}
         disabled={convertMutation.isPending}
-        title="Use after the customer has confirmed, including by email or another channel."
+        title="Create a Sales Order only after customer acceptance has been recorded."
         data-testid={`button-convert-quotation-to-sales-order-${quotationId}`}
       >
         <ShoppingCart className="mr-1 h-4 w-4" />
@@ -82,7 +82,7 @@ export default function QuotationToSalesOrderButton({
             <AlertDialogTitle>Convert this quotation to a Sales Order?</AlertDialogTitle>
             <AlertDialogDescription>
               This creates a draft Sales Order from <strong>{quotationNumber}</strong> and links it to the quotation.
-              Continue only after the customer has confirmed, either in the dashboard or through email or another channel.
+              Continue only after customer acceptance has been recorded in the dashboard or verified by staff from another channel.
               A quotation can be converted only once.
             </AlertDialogDescription>
           </AlertDialogHeader>

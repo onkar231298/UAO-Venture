@@ -517,7 +517,7 @@ export default function MySalesAndQuotations() {
                                       ? "Download Draft PDF"
                                       : "Download PDF"}
                                 </Button>
-                                {["sent", "accepted"].includes(quotation.status) && !quotation.salesOrderId && (
+                                {quotation.status === "accepted" && !quotation.salesOrderId && (
                                   <QuotationToSalesOrderButton
                                     quotationId={quotation.id}
                                     quotationNumber={quotation.quotationId}
@@ -1073,7 +1073,7 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
                 quotationStatus={quotation.status}
                 mode="staff"
               />
-              {["sent", "accepted"].includes(quotation.status) && !quotation.salesOrderId && (
+              {quotation.status === "accepted" && !quotation.salesOrderId && (
                 <div className="flex justify-end">
                   <QuotationToSalesOrderButton
                     quotationId={quotation.id}
