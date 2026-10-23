@@ -10,6 +10,7 @@ export type StockBatch = {
   usedQuantity: string | number | null;
   remainingQuantity: string | number | null;
   expiryDate: Date | string | null;
+  procurementCertificateVerified?: boolean;
 };
 
 export type StockReservation = {
@@ -17,18 +18,25 @@ export type StockReservation = {
   quantity: string | number;
   unit: string;
   status: string;
+  fulfillmentRequirementId?: number;
 };
 
 export type StockAvailability = {
   requiredQuantity: number;
+  fulfilledQuantity: number;
+  allocatedQuantity: number;
+  outstandingQuantity: number;
   unit: string;
   finishedGoodsAvailable: number;
   rawMaterialsAvailable: number;
   unverifiedInventoryQuantity: number;
   purchaseShortage: number;
+  activeReservations: number;
+  unverifiedBatchQuantity: number;
   recommendation: "stock_available" | "production_review" | "inventory_review" | "purchase_required";
   excludedBatchCount: number;
   reasons: string[];
+  eligibleFinishedGoodBatches: Array<{ id: number; freeQuantity: number; allocatedQuantity: number; unit: string }>;
 };
 
 export function normalizeVendorName(value: string): string {
@@ -85,6 +93,8 @@ export function calculateStockAvailability(input: {
   productType: string | null;
   isOrganic: boolean | null;
   requiredQuantity: number;
+  fulfilledQuantity?: number;
+  fulfillmentRequirementId?: number;
   unit: string;
   batches: StockBatch[];
   reservations: StockReservation[];
@@ -103,7 +113,9 @@ export function calculateStockAvailability(input: {
 
   let finishedGoodsAvailable = 0;
   let rawMaterialsAvailable = 0;
+  let unverifiedBatchQuantity = 0;
   let excludedBatchCount = 0;
+  const eligibleFinishedGoodBatches: StockAvailability["eligibleFinishedGoodBatches"] = [];
   const now = Date.now();
   for (const batch of input.batches) {
     const type = batch.batchType || "";
@@ -115,32 +127,66 @@ export function calculateStockAvailability(input: {
       batch.status === "approved" &&
       ["finished_good", "raw_material"].includes(type) &&
       normalizeUnit(batch.unitOfMeasure || batch.unit) === requiredUnit &&
-      (requiredType === "unknown" || category === requiredType) &&
+      category === requiredType &&
       (expiry === null || Number.isFinite(expiry) && expiry >= now);
     if (!eligible) {
       excludedBatchCount++;
       continue;
     }
 
-    const unreserved = Math.max(
-      0,
-      amount(batch.remainingQuantity) ||
-        Math.max(0, amount(batch.approvedQuantity) - amount(batch.usedQuantity)),
-    );
-    const available = Math.max(0, unreserved - (reservationByBatch.get(batch.id) || 0));
+    const physical = batch.remainingQuantity !== null && batch.remainingQuantity !== undefined
+      ? amount(batch.remainingQuantity)
+      : Math.max(0, amount(batch.approvedQuantity) - amount(batch.usedQuantity));
+    const activeReserved = reservationByBatch.get(batch.id) || 0;
+    const unreserved = Math.max(0, physical - activeReserved);
+    const ownAllocated = input.reservations
+      .filter((reservation) =>
+        reservation.status === "active" &&
+        reservation.qualityBatchId === batch.id &&
+        reservation.fulfillmentRequirementId === input.fulfillmentRequirementId &&
+        normalizeUnit(reservation.unit) === requiredUnit,
+      )
+      .reduce((sum, reservation) => sum + amount(reservation.quantity), 0);
+    const available = unreserved;
+
+    // Quality batch approval alone does not prove current organic certificate,
+    // document, and market eligibility. Missing evidence must trigger review.
+    if (requiredType === "organic" && !batch.procurementCertificateVerified) {
+      unverifiedBatchQuantity += Math.max(0, physical - activeReserved);
+      excludedBatchCount++;
+      continue;
+    }
     if (type === "finished_good") finishedGoodsAvailable += available;
     if (type === "raw_material") rawMaterialsAvailable += available;
+    if (type === "finished_good") {
+      eligibleFinishedGoodBatches.push({
+        id: batch.id,
+        freeQuantity: available,
+        allocatedQuantity: ownAllocated,
+        unit: input.unit,
+      });
+    }
   }
 
   const unverifiedInventoryQuantity = Math.max(0, amount(input.unverifiedInventoryQuantity));
-  const purchaseShortage = Math.max(0, input.requiredQuantity - finishedGoodsAvailable);
+  const fulfilledQuantity = Math.min(input.requiredQuantity, Math.max(0, amount(input.fulfilledQuantity)));
+  const allocatedQuantity = Math.min(
+    Math.max(0, input.requiredQuantity - fulfilledQuantity),
+    eligibleFinishedGoodBatches.reduce((sum, batch) => sum + batch.allocatedQuantity, 0),
+  );
+  const outstandingQuantity = Math.max(0, input.requiredQuantity - fulfilledQuantity - allocatedQuantity);
+  const purchaseShortage = Math.max(0, outstandingQuantity - finishedGoodsAvailable);
+  const activeReservations = Math.max(0, input.reservations
+    .filter((reservation) => reservation.status === "active" && normalizeUnit(reservation.unit) === requiredUnit)
+    .reduce((sum, reservation) => sum + amount(reservation.quantity), 0));
   const reasons: string[] = [];
   let recommendation: StockAvailability["recommendation"];
-  if (finishedGoodsAvailable >= input.requiredQuantity) {
+  if (purchaseShortage <= 0) {
     recommendation = "stock_available";
-  } else if (unverifiedInventoryQuantity > 0) {
+  } else if (unverifiedInventoryQuantity > 0 || unverifiedBatchQuantity > 0 || requiredType === "unknown") {
     recommendation = "inventory_review";
-    reasons.push("Legacy inventory has quantity without a matching quality-released batch, so it is not counted as available.");
+    if (unverifiedInventoryQuantity > 0) reasons.push("Legacy inventory has quantity without a matching quality-released batch, so it is not counted as available.");
+    if (unverifiedBatchQuantity > 0) reasons.push("Organic batch stock needs valid certification documents and market-eligibility review before it can be counted.");
   } else if (rawMaterialsAvailable > 0) {
     recommendation = "production_review";
     reasons.push("Released raw material exists, but there is no approved bill of materials or yield rule to convert it into finished goods.");
@@ -156,14 +202,20 @@ export function calculateStockAvailability(input: {
 
   return {
     requiredQuantity: input.requiredQuantity,
+    fulfilledQuantity,
+    allocatedQuantity,
+    outstandingQuantity,
     unit: input.unit,
     finishedGoodsAvailable,
     rawMaterialsAvailable,
     unverifiedInventoryQuantity,
     purchaseShortage,
+    activeReservations,
+    unverifiedBatchQuantity,
     recommendation,
     excludedBatchCount,
     reasons,
+    eligibleFinishedGoodBatches,
   };
 }
 

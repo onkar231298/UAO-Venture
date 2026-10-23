@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "./db";
 import {
   inventory,
@@ -42,6 +42,26 @@ export async function syncConfirmedSalesOrder(salesOrderId: number) {
   for (const item of items) {
     const requiredQuantity = numberValue(item.quantity);
     if (!(requiredQuantity > 0) || !item.unit?.trim()) continue;
+    const [existing] = await db.select().from(salesOrderFulfillmentRequirements)
+      .where(eq(salesOrderFulfillmentRequirements.salesOrderItemId, item.id)).limit(1);
+    if (existing && (
+      numberValue(existing.requiredQuantity) !== requiredQuantity ||
+      existing.unit !== item.unit ||
+      existing.productId !== item.productId
+    )) {
+      const [existingRequisition] = await db.select({ id: materialRequisitions.id })
+        .from(materialRequisitions)
+        .where(eq(materialRequisitions.fulfillmentRequirementId, existing.id)).limit(1);
+      const [existingReservation] = await db.select({ id: inventoryReservations.id })
+        .from(inventoryReservations)
+        .where(and(
+          eq(inventoryReservations.fulfillmentRequirementId, existing.id),
+          eq(inventoryReservations.status, "active"),
+        )).limit(1);
+      if (existingRequisition || existingReservation || numberValue(existing.fulfilledQuantity) > 0) {
+        throw new Error(`Sales Order item ${item.id} changed after procurement activity started; review its existing requirement manually.`);
+      }
+    }
     const [requirement] = await db.insert(salesOrderFulfillmentRequirements).values({
       salesOrderId,
       salesOrderItemId: item.id,
@@ -85,6 +105,7 @@ export async function getLiveStockAnalysis(requirementId: number) {
     productId: salesOrderFulfillmentRequirements.productId,
     productName: salesOrderFulfillmentRequirements.productName,
     requiredQuantity: salesOrderFulfillmentRequirements.requiredQuantity,
+    fulfilledQuantity: salesOrderFulfillmentRequirements.fulfilledQuantity,
     unit: salesOrderFulfillmentRequirements.unit,
   }).from(salesOrderFulfillmentRequirements)
     .where(eq(salesOrderFulfillmentRequirements.id, requirementId)).limit(1);
@@ -100,6 +121,7 @@ export async function getLiveStockAnalysis(requirementId: number) {
   const reservations = requirement.productId
     ? await db.select({
         qualityBatchId: inventoryReservations.qualityBatchId,
+          fulfillmentRequirementId: inventoryReservations.fulfillmentRequirementId,
         quantity: inventoryReservations.quantity,
         unit: inventoryReservations.unit,
         status: inventoryReservations.status,
@@ -123,6 +145,8 @@ export async function getLiveStockAnalysis(requirementId: number) {
     productType: product?.productType || null,
     isOrganic: product?.isOrganic ?? null,
     requiredQuantity: numberValue(requirement.requiredQuantity),
+    fulfilledQuantity: numberValue(requirement.fulfilledQuantity),
+    fulfillmentRequirementId: requirement.id,
     unit: requirement.unit,
     batches,
     reservations,
@@ -156,10 +180,7 @@ export async function createRequisitionForShortage(requirementId: number, reques
 
     const [existing] = await tx.select({ id: materialRequisitions.id })
       .from(materialRequisitions)
-      .where(and(
-        eq(materialRequisitions.fulfillmentRequirementId, requirementId),
-        ne(materialRequisitions.status, "cancelled"),
-      ))
+      .where(eq(materialRequisitions.fulfillmentRequirementId, requirementId))
       .limit(1);
     if (existing) throw new Error("A requisition already exists for this fulfillment requirement.");
 
@@ -176,6 +197,8 @@ export async function createRequisitionForShortage(requirementId: number, reques
       reason: `Verified finished-goods shortage for Sales Order fulfillment requirement ${requirementId}.`,
       status: "draft",
       requestedById,
+      requestingDepartment: "sales",
+      stockAnalysis: analysis,
     }).returning();
 
     await tx.insert(procurementAuditEvents).values({
@@ -195,6 +218,7 @@ export async function getPurchaseSafeFulfillmentRows() {
     soNumber: salesOrders.soNumber,
   }).from(salesOrderFulfillmentRequirements)
     .innerJoin(salesOrders, eq(salesOrderFulfillmentRequirements.salesOrderId, salesOrders.id))
+    .where(eq(salesOrders.status, "confirmed"))
     .orderBy(desc(salesOrderFulfillmentRequirements.createdAt));
   return Promise.all(rows.map(async ({ requirement, soNumber }) => {
     const { analysis } = await getLiveStockAnalysis(requirement.id);
@@ -205,6 +229,10 @@ export async function getPurchaseSafeFulfillmentRows() {
       productName: requirement.productName,
       specification: requirement.specification,
       requiredQuantity: requirement.requiredQuantity,
+      fulfilledQuantity: analysis.fulfilledQuantity,
+      allocatedQuantity: analysis.allocatedQuantity,
+      outstandingQuantity: analysis.outstandingQuantity,
+      activeReservations: analysis.activeReservations,
       unit: requirement.unit,
       requiredBy: requirement.requiredBy,
       priority: requirement.priority,
