@@ -14,6 +14,7 @@ import HighVolumeBidsPage from "@/pages/crm/HighVolumeBidsPage";
 import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
 import PurchaseManagement from "@/pages/crm/PurchaseManagement";
+import ProductionManagementLanding from "@/pages/admin/ProductionManagement";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -38,6 +39,7 @@ import {
   Activity,
   Globe,
   Warehouse,
+  Factory,
   Calculator,
   TrendingUp,
   LayoutDashboard,
@@ -203,6 +205,7 @@ export default function AdminDashboard() {
     switch(activeSection) {
       case 'overview': return 'Dashboard';
       case 'inventory': return 'Inventory Management';
+      case 'production': return 'Production Management';
       case 'sales': return 'Sales Management';
       case 'enquiry-sample': return 'Customer Inquiries';
       case 'sales-crm': return 'Lead Management';
@@ -252,6 +255,7 @@ export default function AdminDashboard() {
   const adminNavItems: PortalNavDestination[] = [
     { key: "overview", label: "Dashboard", icon: LayoutDashboard, active: activeSection === "overview", onSelect: () => setActiveSection("overview") },
     { key: "inventory", label: "Inventory Management", icon: Warehouse, active: activeSection === "inventory", onSelect: () => setActiveSection("inventory") },
+    { key: "production", label: "Production Management", icon: Factory, active: activeSection === "production", onSelect: () => setActiveSection("production") },
     { key: "sales", label: "Sales Management", icon: TrendingUp, active: activeSection === "sales", onSelect: () => setActiveSection("sales") },
     { key: "enquiry-sample", label: "Customer Inquiries", icon: Send, active: activeSection === "enquiry-sample", onSelect: () => setActiveSection("enquiry-sample") },
     { key: "sample-requests", label: "Sample Requests", icon: Package, active: activeSection === "sample-requests", onSelect: () => setActiveSection("sample-requests") },
@@ -330,6 +334,7 @@ export default function AdminDashboard() {
               <button type="button" className="bfo-nav-group-toggle" aria-expanded="true" onClick={toggleNavGroup}><span>OPERATIONS</span><ChevronDown size={14} /></button>
               <div className="space-y-1">
                 {navButton('inventory', 'Inventory Management', Warehouse, activeSection === 'inventory', () => setActiveSection('inventory'))}
+                {navButton('production', 'Production Management', Factory, activeSection === 'production', () => setActiveSection('production'))}
                 <PortalSidebarBranch label="Sales Management" active={salesSubKeys.includes(activeSection)} activeKey={activeSection}
                   trigger={navButton('sales', 'Sales Management', TrendingUp, salesSubKeys.includes(activeSection), () => setActiveSection('sales'))}>
                     {navButton('enquiry-sample', 'Customer Inquiries', Send, activeSection === 'enquiry-sample', () => setActiveSection('enquiry-sample'), 'small')}
@@ -803,6 +808,10 @@ export default function AdminDashboard() {
             <PurchaseManagement />
           )}
 
+          {activeSection === 'production' && (
+            <ProductionManagementLanding />
+          )}
+
           {activeSection === 'newsletter' && (
             <NewsletterSubscriptions />
           )}
@@ -847,7 +856,7 @@ export default function AdminDashboard() {
             <DocumentUpload />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && activeSection !== 'purchase' && activeSection !== 'documents' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && activeSection !== 'purchase' && activeSection !== 'production' && activeSection !== 'documents' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>
