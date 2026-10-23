@@ -3128,7 +3128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           primaryPhone: inquiryDetails.phoneNumber || customerDetails?.phoneNumber,
           dataCompleteness: customerDetails ? 'complete' : 'partial',
           needsEnrichment: !customerDetails,
-          assignedTo: userId,
+          assignedTo: inquiryDetails.assignedTo || userId,
           createdBy: userId,
           origin: 'website', // From customer inquiry
         };
@@ -3247,7 +3247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expectedOrderValue: expectedOrderValue,
         currency: quotationResult.length > 0 ? quotationResult[0].currency : 'USD',
         specialRequirements: `Product Inquiry #${inquiryDetails.inquiryId} converted to lead\n\nProduct: ${inquiryDetails.productId || 'N/A'}\nQuantity: ${inquiryDetails.quantity || 'N/A'} ${inquiryDetails.unit || ''}${quotationInfo}\n\nOriginal Message: ${inquiryDetails.message || 'N/A'}\n\nConversion Notes: ${notes || 'N/A'}`,
-        assignedSalesRep: userId,
+        assignedSalesRep: inquiryDetails.assignedTo || userId,
         assignedBy: userId,
         assignedAt: new Date(),
         stageEnteredAt: new Date(),
@@ -5066,7 +5066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             primaryPhone: inquiry.phoneNumber,
             dataCompleteness: 'partial',
             needsEnrichment: true,
-            assignedTo: userId,
+            assignedTo: inquiry.assignedTo || userId,
             createdBy: userId,
           })
           .returning();
@@ -5117,7 +5117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expectedOrderValue: quotation.totalAmount ? quotation.totalAmount.toString() : null,
         currency: 'USD',
         specialRequirements: `Quotation #${quotation.quotationId} accepted by customer\n\nProduct: ${inquiry.productId || 'N/A'}\nQuantity: ${quotation.quantity || 'N/A'} ${quotation.unit || ''}\nUnit Price: $${quotation.unitPrice || 'N/A'}\nTotal Amount: $${quotation.totalAmount || 'N/A'}\n\nOriginal Message: ${inquiry.message || 'N/A'}`,
-        assignedSalesRep: userId,
+        assignedSalesRep: inquiry.assignedTo || userId,
         assignedBy: userId,
         assignedAt: new Date(),
         stageEnteredAt: new Date(),

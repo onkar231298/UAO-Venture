@@ -73,6 +73,8 @@ export default function QuotationNegotiationsPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales/my-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales/dashboard"] });
       toast({
         title: "Lead Created",
         description: `CRM lead ${data.lead.leadId} has been created successfully.`,

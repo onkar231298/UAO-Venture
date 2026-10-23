@@ -240,6 +240,9 @@ export default function SalesManagement({
       });
       queryClient.invalidateQueries({ queryKey: ['/api/inquiries'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales/my-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales/dashboard'] });
       setConvertDialogOpen(false);
       setInquiryToConvert(null);
     },

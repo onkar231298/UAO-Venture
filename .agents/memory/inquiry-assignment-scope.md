@@ -26,3 +26,9 @@ When a company assigned to a sales representative is converted to a lead, keep t
 **Why:** the user explicitly asked that company-converted leads appear in the assigned sales representative's My Leads section.
 
 **How to apply:** preserve the company assignee on lead creation, refresh the rep's cached lead views after conversion, and keep server-side lead queries scoped to the assigned representative.
+
+Converting an assigned product inquiry or its quotation must likewise keep the inquiry's assigned sales representative as the lead owner; do not silently assign the lead to the admin or manager who clicks Convert.
+
+**Why:** the user expects a converted inquiry already assigned to a rep to appear in that rep's My Leads, and a real converted inquiry was being owned by the converting admin instead.
+
+**How to apply:** use the inquiry assignee for direct inquiry and accepted-quotation conversions, with the actor as fallback only when the inquiry has no assignee.
