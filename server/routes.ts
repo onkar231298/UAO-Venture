@@ -8,6 +8,7 @@ import { setupAuth, isAuthenticated, isCustomerAuthenticated, createCustomerSess
 import hrRoutes from "./hrRoutes";
 import { registerPurchaseRoutes } from "./purchaseRoutes";
 import { syncConfirmedSalesOrder } from "./purchaseService";
+import { redactCustomerIdentity, restrictedCustomerKeys } from "./purchaseDomain";
 import { 
   insertInquirySchema, 
   insertQuotationSchema, 
@@ -333,6 +334,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+  const requireSalesCustomerDataAccess = async (req: any, res: any, next: any) => {
+    try {
+      const user = await storage.getUser(req.user?.claims?.sub);
+      if (!user) return res.status(401).json({ message: "Login required" });
+      const isAdmin = ["admin", "super_admin"].includes(user.role || "");
+      const isSales = Boolean(user.role?.includes("sales"));
+      if (!isAdmin && !isSales) {
+        return res.status(403).json({ message: "Customer and lead records are restricted to Sales and Admin." });
+      }
+      if (isAdmin) return next();
+
+      const directId = /^\/(\d+)(?:\/|$)/.exec(req.path)?.[1];
+      if (!directId) return next();
+      const entityId = Number(directId);
+      if (req.baseUrl.endsWith("/api/leads")) {
+        const [lead] = await db.select({ assignedSalesRep: leads.assignedSalesRep })
+          .from(leads).where(eq(leads.id, entityId)).limit(1);
+        if (lead?.assignedSalesRep === user.id) return next();
+        return res.status(403).json({ message: "You can only access leads assigned to you." });
+      }
+
+      const [company] = await db.select({ id: companies.id, assignedTo: companies.assignedTo })
+        .from(companies).where(eq(companies.id, entityId)).limit(1);
+      if (company?.assignedTo === user.id) return next();
+      const [ownedLead] = company ? await db.select({ id: leads.id }).from(leads).where(and(
+        eq(leads.companyId, company.id),
+        eq(leads.assignedSalesRep, user.id),
+      )).limit(1) : [];
+      if (ownedLead) return next();
+      return res.status(403).json({ message: "You can only access companies assigned to you or linked to your leads." });
+    } catch (error) {
+      console.error("Could not verify customer-data access:", error);
+      return res.status(500).json({ message: "Could not verify access" });
+    }
+  };
+  app.use("/api/crm/companies", isAuthenticated, requireSalesCustomerDataAccess);
+  app.use("/api/companies", isAuthenticated, requireSalesCustomerDataAccess);
+  app.use("/api/leads", isAuthenticated, requireSalesCustomerDataAccess);
   registerQuotationDocumentRoutes(app);
   await registerCustomerEmailTemplateRoutes(app);
   registerChatRoutes(app);
@@ -2533,6 +2572,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found user:', user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
+      }
+      if (
+        user.role !== "customer" &&
+        !["admin", "super_admin"].includes(user.role || "") &&
+        !user.role?.includes("sales")
+      ) {
+        return res.status(403).json({ message: "Enquiry records are restricted to assigned Sales and Admin." });
       }
 
       const { status, limit = '50', offset = '0' } = req.query;
@@ -15752,7 +15798,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     try {
       const userId = req.user?.claims?.sub;
       const currentUser = await storage.getUser(userId);
-      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
+      const isSalesRole = Boolean(currentUser?.role?.includes('sales'));
       const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
@@ -15764,7 +15810,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityDocumentRequests(filters);
-      const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
+      const requesterIds = Array.from(new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean)));
       const requesterMap: Record<string, string> = {};
       for (const uid of requesterIds) {
         const user = await storage.getUser(uid);
@@ -15774,7 +15820,10 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         ...r,
         requesterName: requesterMap[r.requesterId] || r.requesterId,
       }));
-      res.json({ requests: enrichedRequests, total: result.total });
+      res.json({
+        requests: redactCustomerIdentity(enrichedRequests, currentUser?.role),
+        total: result.total,
+      });
     } catch (error) {
       console.error('Error fetching quality document requests:', error);
       res.status(500).json({ message: 'Failed to fetch document requests' });
@@ -15783,9 +15832,10 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   app.get('/api/quality/document-requests/:id', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user?.claims?.sub);
       const request = await storage.getQualityDocumentRequest(parseInt(req.params.id));
       if (!request) return res.status(404).json({ message: 'Document request not found' });
-      res.json(request);
+      res.json(redactCustomerIdentity(request, user?.role));
     } catch (error) {
       console.error('Error fetching quality document request:', error);
       res.status(500).json({ message: 'Failed to fetch document request' });
@@ -15795,7 +15845,9 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   app.post('/api/quality/document-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
-      const custName = req.body.customerName || 'Unknown';
+      const currentUser = await storage.getUser(userId);
+      const isQualityRole = Boolean(currentUser?.role?.includes("quality"));
+      const custName = isQualityRole ? "Internal" : req.body.customerName || 'Unknown';
       const now = new Date();
       const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getFullYear()).slice(-2)}`;
       const countResult = await db.select({ count: sql<number>`count(*)::int` }).from(qualityDocumentRequests).where(sql`customer_name = ${custName} AND to_char(created_at, 'MMYY') = ${monthYear}`);
@@ -15803,16 +15855,17 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       const referenceId = `QDR-${custName}-${monthYear}-${seq}`;
       const body = {
         ...req.body,
+        companyId: isQualityRole ? null : req.body.companyId,
         requesterId: userId,
         referenceId,
         requestType: req.body.requestType || req.body.documentType || 'coa',
         title: req.body.title || `${(req.body.documentType || req.body.requestType || 'document').toUpperCase()} - ${req.body.materialName || 'Request'}`,
         materialName: req.body.materialName || req.body.productName || null,
-        customerName: custName,
+        customerName: isQualityRole ? null : custName,
       };
       const validated = insertQualityDocumentRequestSchema.parse(body);
       const result = await storage.createQualityDocumentRequest(validated);
-      res.status(201).json(result);
+      res.status(201).json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
@@ -15824,8 +15877,13 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   app.patch('/api/quality/document-requests/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const result = await storage.updateQualityDocumentRequest(parseInt(req.params.id), req.body);
-      res.json(result);
+      const currentUser = await storage.getUser(req.user?.claims?.sub);
+      const body = { ...req.body };
+      if (currentUser?.role?.includes("quality")) {
+        restrictedCustomerKeys.forEach((key) => delete body[key]);
+      }
+      const result = await storage.updateQualityDocumentRequest(parseInt(req.params.id), body);
+      res.json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       console.error('Error updating quality document request:', error);
       res.status(500).json({ message: 'Failed to update document request' });
@@ -15837,7 +15895,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     try {
       const userId = req.user?.claims?.sub;
       const currentUser = await storage.getUser(userId);
-      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
+      const isSalesRole = Boolean(currentUser?.role?.includes('sales'));
       const { status, requestType, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
@@ -15850,7 +15908,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityTestingRequests(filters);
-      const requesterIds = [...new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean))];
+      const requesterIds = Array.from(new Set(result.requests.map((r: any) => r.requesterId).filter(Boolean)));
       const requesterMap: Record<string, string> = {};
       for (const uid of requesterIds) {
         const user = await storage.getUser(uid);
@@ -15860,7 +15918,10 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
         ...r,
         requesterName: requesterMap[r.requesterId] || r.requesterId,
       }));
-      res.json({ requests: enrichedRequests, total: result.total });
+      res.json({
+        requests: redactCustomerIdentity(enrichedRequests, currentUser?.role),
+        total: result.total,
+      });
     } catch (error) {
       console.error('Error fetching quality testing requests:', error);
       res.status(500).json({ message: 'Failed to fetch testing requests' });
@@ -15869,9 +15930,10 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   app.get('/api/quality/testing-requests/:id', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user?.claims?.sub);
       const request = await storage.getQualityTestingRequest(parseInt(req.params.id));
       if (!request) return res.status(404).json({ message: 'Testing request not found' });
-      res.json(request);
+      res.json(redactCustomerIdentity(request, user?.role));
     } catch (error) {
       console.error('Error fetching quality testing request:', error);
       res.status(500).json({ message: 'Failed to fetch testing request' });
@@ -15881,7 +15943,9 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   app.post('/api/quality/testing-requests', isAuthenticated, isQualityOrSalesAuthorized, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.user?.id || req.user?.id;
-      const custName = req.body.customerName || 'Unknown';
+      const currentUser = await storage.getUser(userId);
+      const isQualityRole = Boolean(currentUser?.role?.includes("quality"));
+      const custName = isQualityRole ? "Internal" : req.body.customerName || 'Unknown';
       const now = new Date();
       const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getFullYear()).slice(-2)}`;
       const countResult = await db.select({ count: sql<number>`count(*)::int` }).from(qualityTestingRequests).where(sql`customer_name = ${custName} AND to_char(created_at, 'MMYY') = ${monthYear}`);
@@ -15889,15 +15953,16 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       const referenceId = `QTR-${custName}-${monthYear}-${seq}`;
       const body = {
         ...req.body,
+        companyId: isQualityRole ? null : req.body.companyId,
         requesterId: userId,
         referenceId,
         title: req.body.title || `${(req.body.requestType || 'IRF').toUpperCase()} - ${req.body.materialName || 'Test Request'}`,
         materialName: req.body.materialName || null,
-        customerName: custName,
+        customerName: isQualityRole ? null : custName,
       };
       const validated = insertQualityTestingRequestSchema.parse(body);
       const result = await storage.createQualityTestingRequest(validated);
-      res.status(201).json(result);
+      res.status(201).json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
@@ -15909,8 +15974,13 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   app.patch('/api/quality/testing-requests/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const result = await storage.updateQualityTestingRequest(parseInt(req.params.id), req.body);
-      res.json(result);
+      const currentUser = await storage.getUser(req.user?.claims?.sub);
+      const body = { ...req.body };
+      if (currentUser?.role?.includes("quality")) {
+        restrictedCustomerKeys.forEach((key) => delete body[key]);
+      }
+      const result = await storage.updateQualityTestingRequest(parseInt(req.params.id), body);
+      res.json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       console.error('Error updating quality testing request:', error);
       res.status(500).json({ message: 'Failed to update testing request' });
@@ -15925,7 +15995,8 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       if (testingRequestId) filters.testingRequestId = parseInt(testingRequestId as string);
       if (batchId) filters.batchId = parseInt(batchId as string);
       const result = await storage.getQualityTestReports(filters);
-      res.json(result);
+      const currentUser = await storage.getUser(req.user?.claims?.sub);
+      res.json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       console.error('Error fetching quality test reports:', error);
       res.status(500).json({ message: 'Failed to fetch test reports' });
@@ -16211,7 +16282,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     try {
       const userId = req.user?.claims?.sub;
       const currentUser = await storage.getUser(userId);
-      const isSalesRole = currentUser && ['sales_manager', 'sales_executive'].includes(currentUser.role || '');
+      const isSalesRole = Boolean(currentUser?.role?.includes('sales'));
       const { status, requesterId, assignedToId, limit = '50', offset = '0' } = req.query;
       const filters: any = { limit: parseInt(limit as string), offset: parseInt(offset as string) };
       if (status) filters.status = status;
@@ -16223,7 +16294,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       }
       if (assignedToId) filters.assignedToId = assignedToId;
       const result = await storage.getQualityCustomerVendorApprovals(filters);
-      res.json(result);
+      res.json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       console.error('Error fetching customer vendor approvals:', error);
       res.status(500).json({ message: 'Failed to fetch customer vendor approvals' });
@@ -16234,7 +16305,8 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
     try {
       const approval = await storage.getQualityCustomerVendorApproval(parseInt(req.params.id));
       if (!approval) return res.status(404).json({ message: 'Customer vendor approval not found' });
-      res.json(approval);
+      const currentUser = await storage.getUser(req.user?.claims?.sub);
+      res.json(redactCustomerIdentity(approval, currentUser?.role));
     } catch (error) {
       console.error('Error fetching customer vendor approval:', error);
       res.status(500).json({ message: 'Failed to fetch customer vendor approval' });
@@ -16247,7 +16319,8 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
       const body = { ...req.body, requesterId: userId };
       const validated = insertQualityCustomerVendorApprovalSchema.parse(body);
       const result = await storage.createQualityCustomerVendorApproval(validated);
-      res.status(201).json(result);
+      const currentUser = await storage.getUser(userId);
+      res.status(201).json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
@@ -16259,8 +16332,13 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   app.patch('/api/quality/customer-vendor-approvals/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const result = await storage.updateQualityCustomerVendorApproval(parseInt(req.params.id), req.body);
-      res.json(result);
+      const currentUser = await storage.getUser(req.user?.claims?.sub);
+      const body = { ...req.body };
+      if (currentUser?.role?.includes("quality")) {
+        restrictedCustomerKeys.forEach((key) => delete body[key]);
+      }
+      const result = await storage.updateQualityCustomerVendorApproval(parseInt(req.params.id), body);
+      res.json(redactCustomerIdentity(result, currentUser?.role));
     } catch (error) {
       console.error('Error updating customer vendor approval:', error);
       res.status(500).json({ message: 'Failed to update customer vendor approval' });

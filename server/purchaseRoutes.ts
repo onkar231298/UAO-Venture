@@ -85,7 +85,14 @@ function safeFileName(fileName: string): string {
   return path.basename(fileName).replace(/[^\w.\- ]/g, "_").slice(0, 200) || "document";
 }
 
-function validDocumentFile(file: Express.Multer.File | undefined): boolean {
+type PurchaseUploadedFile = {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+};
+
+function validDocumentFile(file: PurchaseUploadedFile | undefined): boolean {
   if (!file || !file.buffer?.length) return false;
   const name = file.originalname.toLocaleLowerCase("en");
   const bytes = file.buffer;
@@ -124,17 +131,13 @@ async function refreshVendorApprovalStatus(executor: any, vendorId: number) {
   if (!vendor) return;
   const scopes = await executor.select().from(vendorApprovalScopes)
     .where(eq(vendorApprovalScopes.vendorId, vendorId));
-  const requiredScopes = scopes.filter((scope: any) => scope.qualityRequired);
-  const allRequiredScopesApproved = requiredScopes.every((scope: any) => isCurrentApprovedScope(scope));
   let approvalStatus = "under_review";
   if (vendor.vendorStatus !== "active") approvalStatus = "suspended";
-  else if (vendor.generalApprovalStatus === "rejected" || scopes.some((scope: any) => scope.approvalStatus === "rejected")) approvalStatus = "rejected";
-  else if (
-    vendor.generalApprovalStatus === "approved" &&
-    scopes.length > 0 &&
-    allRequiredScopesApproved &&
-    scopes.every((scope: any) => scope.approvalStatus === "approved" || !scope.qualityRequired)
-  ) approvalStatus = "approved";
+  else if (vendor.generalApprovalStatus === "rejected") approvalStatus = "rejected";
+  // Approval is per exact scope. A pending or rejected *different* scope must
+  // not invalidate an already approved product/service scope.
+  else if (vendor.generalApprovalStatus === "approved" &&
+    scopes.some((scope: any) => isCurrentApprovedScope(scope))) approvalStatus = "approved";
   else if (!vendor.submittedAt) approvalStatus = "pending";
   await executor.update(qualityVendors).set({
     approvalStatus,
@@ -175,7 +178,59 @@ function financialResponse(row: any) {
   };
 }
 
+function purchaseOrderComplianceWarnings(
+  vendor: { vendorStatus: string | null; approvalStatus: string | null; generalApprovalStatus: string | null } | null,
+  items: Array<{ approvalScopeId: number | null; productId: number | null }>,
+  scopes: Map<number, any>,
+  productMap: Map<number, any>,
+): string[] {
+  const warnings = new Set<string>();
+  if (!vendor) {
+    warnings.add("The linked supplier record is missing.");
+  } else if (
+    vendor.vendorStatus !== "active" ||
+    vendor.approvalStatus !== "approved" ||
+    vendor.generalApprovalStatus !== "approved"
+  ) {
+    warnings.add("The supplier registration is not currently approved.");
+  }
+
+  for (const item of items) {
+    const scope = item.approvalScopeId ? scopes.get(item.approvalScopeId) : null;
+    const product = item.productId ? productMap.get(item.productId) : null;
+    if (!scope) {
+      warnings.add("A supplier approval scope is not linked to this order item.");
+    } else if (!isCurrentApprovedScope(scope)) {
+      warnings.add("A linked supplier approval scope is expired or no longer approved.");
+    }
+    if (!scope || !product || !isScopeEligibleForProduct(scope, product)) {
+      warnings.add("A supplier approval scope no longer matches the ordered product.");
+    }
+  }
+  return Array.from(warnings);
+}
+
 export function registerPurchaseRoutes(app: Express) {
+  app.get("/api/purchase/catalog-products", isAuthenticated, rolesOnly(supportViewRoles), async (_req: any, res) => {
+    try {
+      const rows = await db.select({
+        id: products.id,
+        name: products.name,
+        productType: products.productType,
+        isOrganic: products.isOrganic,
+        unit: products.unit,
+        stockUnit: products.stockUnit,
+      }).from(products)
+        .where(eq(products.isActive, true))
+        .orderBy(products.name)
+        .limit(1000);
+      res.json(rows);
+    } catch (error) {
+      console.error("Purchase catalog query failed:", error);
+      res.status(500).json({ message: "Failed to load the active product catalog" });
+    }
+  });
+
   app.get("/api/purchase/overview", isAuthenticated, rolesOnly(supportViewRoles), async (_req: any, res) => {
     try {
       const [orders, vendors, requisitions, requirements] = await Promise.all([
@@ -375,7 +430,7 @@ export function registerPurchaseRoutes(app: Express) {
         await audit(tx, "vendor", vendorId, `general_review_${parsed.data.decision}`, staff.id, { notes: parsed.data.notes });
         return tx.select().from(qualityVendors).where(eq(qualityVendors.id, vendorId)).limit(1);
       });
-      res.json(updated[0]);
+      res.json(updated);
     } catch (error) {
       console.error("Vendor general review failed:", error);
       res.status(500).json({ message: "Failed to review vendor registration" });
@@ -392,6 +447,10 @@ export function registerPurchaseRoutes(app: Express) {
       const [updated] = await db.transaction(async (tx) => {
         const rows = await tx.update(qualityVendors).set({
           vendorStatus: parsed.data.status,
+          generalApprovalStatus: parsed.data.status === "inactive" ? undefined : "pending",
+          generalReviewedAt: parsed.data.status === "inactive" ? undefined : null,
+          generalReviewedById: parsed.data.status === "inactive" ? undefined : null,
+          generalReviewNotes: parsed.data.status === "inactive" ? undefined : null,
           approvalStatus: parsed.data.status === "inactive" ? "suspended" : "pending",
           updatedAt: new Date(),
         }).where(eq(qualityVendors.id, vendorId)).returning();
@@ -446,11 +505,16 @@ export function registerPurchaseRoutes(app: Express) {
           return res.status(400).json({ message: "Organic product scopes require the certification scheme and certificate expiry date." });
         }
       }
+      const scopeKey = [
+        parsed.data.scopeType,
+        productId || "service",
+        parsed.data.organicRequirement,
+        (parsed.data.certificationScheme || "").trim().toLocaleLowerCase("en"),
+        parsed.data.validUntil ? new Date(parsed.data.validUntil).toISOString().slice(0, 10) : "no-expiry",
+      ].join("|");
       const duplicateConditions = [
         eq(vendorApprovalScopes.vendorId, vendorId),
-        eq(vendorApprovalScopes.scopeType, parsed.data.scopeType),
-        productId ? eq(vendorApprovalScopes.productId, productId) : sql`${vendorApprovalScopes.productId} is null`,
-        eq(vendorApprovalScopes.organicRequirement, parsed.data.organicRequirement),
+        eq(vendorApprovalScopes.scopeKey, scopeKey),
       ];
       const [existing] = await db.select({ id: vendorApprovalScopes.id }).from(vendorApprovalScopes)
         .where(and(...duplicateConditions)).limit(1);
@@ -458,6 +522,7 @@ export function registerPurchaseRoutes(app: Express) {
       const [scope] = await db.transaction(async (tx) => {
         const rows = await tx.insert(vendorApprovalScopes).values({
           vendorId,
+          scopeKey,
           scopeType: parsed.data.scopeType,
           productId,
           scopeDescription: parsed.data.scopeDescription,
@@ -468,11 +533,7 @@ export function registerPurchaseRoutes(app: Express) {
           approvalStatus: "pending",
           createdById: staff.id,
         }).returning();
-        await tx.update(qualityVendors).set({
-          approvalStatus: "pending",
-          approvalDate: null,
-          updatedAt: new Date(),
-        }).where(eq(qualityVendors.id, vendorId));
+        await refreshVendorApprovalStatus(tx, vendorId);
         await audit(tx, "vendor_scope", rows[0].id, "scope_created", staff.id, { vendorId, scopeType: parsed.data.scopeType, productId });
         return rows;
       });
@@ -539,6 +600,14 @@ export function registerPurchaseRoutes(app: Express) {
               eq(vendorDocuments.documentType, "certification"),
             )).limit(1);
           if (!evidence) return res.status(400).json({ message: "Upload the supporting certificate before approving this organic scope." });
+        } else if (scope.qualityRequired) {
+          const [evidence] = await db.select({ id: vendorDocuments.id }).from(vendorDocuments)
+            .where(and(
+              eq(vendorDocuments.vendorId, scope.vendorId),
+              eq(vendorDocuments.approvalScopeId, scopeId),
+              inArray(vendorDocuments.documentType, ["certification", "quality_certificate", "audit_report"]),
+            )).limit(1);
+          if (!evidence) return res.status(400).json({ message: "Upload technical supporting evidence before approving this quality-required scope." });
         }
       }
       const [updated] = await db.transaction(async (tx) => {
@@ -611,7 +680,7 @@ export function registerPurchaseRoutes(app: Express) {
   app.post("/api/purchase/vendors/:id/documents", isAuthenticated, rolesOnly(purchaseEditRoles), documentUpload.single("file"), async (req: any, res) => {
     const vendorId = parseId(req.params.id);
     if (!vendorId) return res.status(400).json({ message: "Invalid vendor ID" });
-    const file = req.file as Express.Multer.File | undefined;
+    const file = req.file as PurchaseUploadedFile | undefined;
     if (!validDocumentFile(file)) return res.status(400).json({ message: "Upload a valid PDF, JPG, PNG, or WebP document (maximum 10 MB)." });
     const parsed = z.object({
       documentType: z.enum(["registration", "tax_registration", "certification", "quality_certificate", "audit_report", "other"]),
@@ -719,7 +788,7 @@ export function registerPurchaseRoutes(app: Express) {
       res.status(201).json(requisition);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create requisition";
-      if (/already exists|already covers|verified|Released raw materials|No verified/i.test(message)) {
+      if (/already exists|already covers|verified|verification|Released raw materials|No verified/i.test(message)) {
         return res.status(409).json({ message });
       }
       if (message === "Fulfillment requirement not found") return res.status(404).json({ message });
@@ -755,8 +824,13 @@ export function registerPurchaseRoutes(app: Express) {
         const [product] = requirement.productId ? await tx.select({
           id: products.id, productType: products.productType, isOrganic: products.isOrganic,
         }).from(products).where(eq(products.id, requirement.productId)).limit(1) : [];
-        if (!product || productOrganicCategory(product.productType, product.isOrganic) !== productOrganicCategory(batch.organicType, false)) {
+        const productCategory = product ? productOrganicCategory(product.productType, product.isOrganic) : "unknown";
+        const batchCategory = productOrganicCategory(batch.organicType, String(batch.organicType || "").toLowerCase() === "organic");
+        if (!product || productCategory !== batchCategory) {
           throw new Error("The batch organic/conventional classification does not match the product.");
+        }
+        if (productCategory === "organic") {
+          throw new Error("Organic batch stock cannot be reserved until current certification and market eligibility are verified.");
         }
         const active = await tx.select({
           quantity: inventoryReservations.quantity,
@@ -1012,6 +1086,9 @@ export function registerPurchaseRoutes(app: Express) {
         order: purchaseOrders,
         vendorName: qualityVendors.vendorName,
         vendorCode: qualityVendors.vendorCode,
+        vendorStatus: qualityVendors.vendorStatus,
+        approvalStatus: qualityVendors.approvalStatus,
+        generalApprovalStatus: qualityVendors.generalApprovalStatus,
       }).from(purchaseOrders)
         .leftJoin(qualityVendors, eq(purchaseOrders.vendorRecordId, qualityVendors.id));
       const rows = status
@@ -1019,12 +1096,33 @@ export function registerPurchaseRoutes(app: Express) {
         : await base.orderBy(desc(purchaseOrders.createdAt));
       const ids = rows.map((row) => row.order.id);
       const items = ids.length ? await db.select().from(purchaseOrderItems).where(inArray(purchaseOrderItems.purchaseOrderId, ids)) : [];
-      res.json({ orders: rows.map(({ order, vendorName, vendorCode }) => ({
+      const scopeIds = Array.from(new Set(items.map((item) => item.approvalScopeId).filter((id): id is number => id !== null)));
+      const productIds = Array.from(new Set(items.map((item) => item.productId).filter((id): id is number => id !== null)));
+      const [scopeRows, productRows] = await Promise.all([
+        scopeIds.length ? db.select().from(vendorApprovalScopes).where(inArray(vendorApprovalScopes.id, scopeIds)) : [],
+        productIds.length ? db.select({
+          id: products.id,
+          productType: products.productType,
+          isOrganic: products.isOrganic,
+        }).from(products).where(inArray(products.id, productIds)) : [],
+      ]);
+      const scopeMap = new Map(scopeRows.map((scope) => [scope.id, scope]));
+      const productMap = new Map(productRows.map((product) => [product.id, product]));
+      res.json({ orders: rows.map(({ order, vendorName, vendorCode, vendorStatus, approvalStatus, generalApprovalStatus }) => {
+        const orderItems = items.filter((item) => item.purchaseOrderId === order.id);
+        return {
         ...order,
         vendorName: vendorName || "Vendor not linked",
         vendorCode: vendorCode || null,
-        items: items.filter((item) => item.purchaseOrderId === order.id),
-      })), total: rows.length });
+        items: orderItems,
+        complianceWarnings: purchaseOrderComplianceWarnings(
+          vendorName ? { vendorStatus, approvalStatus, generalApprovalStatus } : null,
+          orderItems,
+          scopeMap,
+          productMap,
+        ),
+      };
+      }), total: rows.length });
     } catch (error) {
       console.error("Purchase order list failed:", error);
       res.status(500).json({ message: "Failed to load purchase orders" });
@@ -1035,7 +1133,9 @@ export function registerPurchaseRoutes(app: Express) {
     const parsed = z.object({
       vendorOfferId: z.number().int().positive(),
       quantity: z.number().positive().finite(),
+      taxPercent: z.number().min(0).max(100).default(0),
       expectedDelivery: z.string().datetime().nullable().optional(),
+      deliveryTerms: z.string().trim().max(5000).optional().default(""),
       terms: z.string().trim().max(5000).optional().default(""),
       notes: z.string().trim().max(5000).optional().default(""),
     }).strict().safeParse(req.body);
@@ -1052,8 +1152,10 @@ export function registerPurchaseRoutes(app: Express) {
         if (parsed.data.quantity > numeric(offer.quantity)) throw new Error("PO quantity exceeds the supplier's quoted quantity.");
         if (normalizeUnit(offer.unit) !== normalizeUnit(requisition.unit)) throw new Error("Supplier offer units no longer match the requisition.");
 
-        const [vendor] = await tx.select().from(qualityVendors).where(eq(qualityVendors.id, offer.vendorId)).limit(1);
-        const [scope] = await tx.select().from(vendorApprovalScopes).where(eq(vendorApprovalScopes.id, offer.vendorScopeId)).limit(1);
+        const [vendor] = await tx.select().from(qualityVendors)
+          .where(eq(qualityVendors.id, offer.vendorId)).for("update").limit(1);
+        const [scope] = await tx.select().from(vendorApprovalScopes)
+          .where(eq(vendorApprovalScopes.id, offer.vendorScopeId)).for("update").limit(1);
         const [product] = requisition.productId ? await tx.select({
           id: products.id, productType: products.productType, isOrganic: products.isOrganic,
         }).from(products).where(eq(products.id, requisition.productId)).limit(1) : [];
@@ -1067,16 +1169,19 @@ export function registerPurchaseRoutes(app: Express) {
 
         const existingItems = await tx.select({
           quantity: purchaseOrderItems.quantity,
+          receivedQuantity: purchaseOrderItems.receivedQuantity,
           status: purchaseOrders.status,
         }).from(purchaseOrderItems).innerJoin(purchaseOrders, eq(purchaseOrderItems.purchaseOrderId, purchaseOrders.id))
           .where(eq(purchaseOrderItems.materialRequisitionId, requisition.id));
         const alreadyAllocated = existingItems
           .filter((item) => item.status !== "cancelled")
-          .reduce((sum, item) => sum + numeric(item.quantity), 0);
+          .reduce((sum, item) => sum + Math.max(0, numeric(item.quantity) - numeric(item.receivedQuantity)), 0);
         const outstanding = Math.max(0, numeric(requisition.quantity) - alreadyAllocated);
         if (parsed.data.quantity > outstanding) throw new Error("This draft would exceed the approved requisition's remaining quantity.");
 
-        const amount = parsed.data.quantity * numeric(offer.unitPrice);
+        const subtotal = parsed.data.quantity * numeric(offer.unitPrice);
+        const taxAmount = subtotal * parsed.data.taxPercent / 100;
+        const amount = subtotal + taxAmount;
         const [order] = await tx.insert(purchaseOrders).values({
           poId: `DPO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`,
           vendorRecordId: vendor.id,
@@ -1084,6 +1189,10 @@ export function registerPurchaseRoutes(app: Express) {
           expectedDelivery: parsed.data.expectedDelivery ? new Date(parsed.data.expectedDelivery) : null,
           totalAmount: amount.toFixed(2),
           currency: offer.currency,
+          subtotal: subtotal.toFixed(2),
+          taxPercent: parsed.data.taxPercent.toFixed(2),
+          taxAmount: taxAmount.toFixed(2),
+          deliveryTerms: parsed.data.deliveryTerms || null,
           status: "draft",
           paymentStatus: "pending",
           terms: parsed.data.terms || null,
@@ -1095,13 +1204,15 @@ export function registerPurchaseRoutes(app: Express) {
           purchaseOrderId: order.id,
           materialRequisitionId: requisition.id,
           vendorOfferId: offer.id,
+          approvalScopeId: scope.id,
           productId: requisition.productId,
           description: requisition.productName,
           specification: requisition.specification,
           quantity: String(parsed.data.quantity),
+          receivedQuantity: "0",
           unit: requisition.unit,
           unitPrice: offer.unitPrice,
-          lineTotal: amount.toFixed(2),
+          lineTotal: subtotal.toFixed(2),
         });
         await tx.update(vendorOffers).set({ status: "selected", updatedAt: new Date() }).where(eq(vendorOffers.id, offer.id));
         await audit(tx, "purchase_order", order.id, "draft_created", staff.id, { requisitionId: requisition.id, vendorId: vendor.id, amount, currency: offer.currency });
@@ -1129,6 +1240,9 @@ export function registerPurchaseRoutes(app: Express) {
         order: purchaseOrders,
         vendorName: qualityVendors.vendorName,
         vendorCode: qualityVendors.vendorCode,
+        vendorStatus: qualityVendors.vendorStatus,
+        approvalStatus: qualityVendors.approvalStatus,
+        generalApprovalStatus: qualityVendors.generalApprovalStatus,
       }).from(purchaseOrders)
         .leftJoin(qualityVendors, eq(purchaseOrders.vendorRecordId, qualityVendors.id))
         .where(eq(purchaseOrders.id, id)).limit(1);
@@ -1143,7 +1257,33 @@ export function registerPurchaseRoutes(app: Express) {
           createdAt: vendorDocuments.createdAt,
         }).from(vendorDocuments).where(eq(vendorDocuments.purchaseOrderId, id)),
       ]);
-      res.json({ ...row.order, vendorName: row.vendorName, vendorCode: row.vendorCode, items, documents });
+      const scopeIds = Array.from(new Set(items.map((item) => item.approvalScopeId).filter((scopeId): scopeId is number => scopeId !== null)));
+      const productIds = Array.from(new Set(items.map((item) => item.productId).filter((productId): productId is number => productId !== null)));
+      const [scopeRows, productRows] = await Promise.all([
+        scopeIds.length ? db.select().from(vendorApprovalScopes).where(inArray(vendorApprovalScopes.id, scopeIds)) : [],
+        productIds.length ? db.select({
+          id: products.id,
+          productType: products.productType,
+          isOrganic: products.isOrganic,
+        }).from(products).where(inArray(products.id, productIds)) : [],
+      ]);
+      res.json({
+        ...row.order,
+        vendorName: row.vendorName,
+        vendorCode: row.vendorCode,
+        items,
+        documents,
+        complianceWarnings: purchaseOrderComplianceWarnings(
+          row.vendorName ? {
+            vendorStatus: row.vendorStatus,
+            approvalStatus: row.approvalStatus,
+            generalApprovalStatus: row.generalApprovalStatus,
+          } : null,
+          items,
+          new Map(scopeRows.map((scope) => [scope.id, scope])),
+          new Map(productRows.map((product) => [product.id, product])),
+        ),
+      });
     } catch (error) {
       console.error("Purchase order details failed:", error);
       res.status(500).json({ message: "Failed to load purchase order" });
@@ -1155,22 +1295,43 @@ export function registerPurchaseRoutes(app: Express) {
     if (!id) return res.status(400).json({ message: "Invalid purchase order ID" });
     const parsed = z.object({
       expectedDelivery: z.string().datetime().nullable().optional(),
+      deliveryTerms: z.string().trim().max(5000).nullable().optional(),
       terms: z.string().trim().max(5000).nullable().optional(),
       notes: z.string().trim().max(5000).nullable().optional(),
+      taxPercent: z.number().min(0).max(100).optional(),
     }).strict().refine((data) => Object.keys(data).length > 0, "Provide editable draft fields");
     const body = parsed.safeParse(req.body);
     if (!body.success) return res.status(400).json({ message: "Enter valid draft changes", errors: body.error.flatten() });
     const staff = req.purchaseStaff as StaffUser;
     try {
-      const [current] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id)).limit(1);
-      if (!current) return res.status(404).json({ message: "Purchase order not found" });
-      if (current.status !== "draft") return res.status(409).json({ message: "Only draft purchase orders can be edited." });
-      const update: Record<string, unknown> = { ...body.data, updatedBy: staff.id, updatedAt: new Date() };
-      if (body.data.expectedDelivery !== undefined) update.expectedDelivery = body.data.expectedDelivery ? new Date(body.data.expectedDelivery) : null;
-      const [saved] = await db.update(purchaseOrders).set(update as any).where(eq(purchaseOrders.id, id)).returning();
-      await audit(db, "purchase_order", id, "draft_updated", staff.id, { fields: Object.keys(body.data) });
+      const saved = await db.transaction(async (tx) => {
+        const [current] = await tx.select().from(purchaseOrders)
+          .where(eq(purchaseOrders.id, id)).for("update").limit(1);
+        if (!current) throw new Error("Purchase order not found");
+        if (current.status !== "draft") throw new Error("Only draft purchase orders can be edited.");
+        const update: Record<string, unknown> = { ...body.data, updatedBy: staff.id, updatedAt: new Date() };
+        if (body.data.expectedDelivery !== undefined) update.expectedDelivery = body.data.expectedDelivery ? new Date(body.data.expectedDelivery) : null;
+        if (body.data.taxPercent !== undefined) {
+          const items = await tx.select({
+            quantity: purchaseOrderItems.quantity,
+            unitPrice: purchaseOrderItems.unitPrice,
+          }).from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, id));
+          const subtotal = items.reduce((sum, item) => sum + numeric(item.quantity) * numeric(item.unitPrice), 0);
+          const taxAmount = subtotal * body.data.taxPercent / 100;
+          update.subtotal = subtotal.toFixed(2);
+          update.taxPercent = body.data.taxPercent.toFixed(2);
+          update.taxAmount = taxAmount.toFixed(2);
+          update.totalAmount = (subtotal + taxAmount).toFixed(2);
+        }
+        const [row] = await tx.update(purchaseOrders).set(update as any).where(eq(purchaseOrders.id, id)).returning();
+        await audit(tx, "purchase_order", id, "draft_updated", staff.id, { fields: Object.keys(body.data) });
+        return row;
+      });
       res.json(saved);
     } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message === "Purchase order not found") return res.status(404).json({ message });
+      if (message.includes("Only draft")) return res.status(409).json({ message });
       console.error("Purchase order edit failed:", error);
       res.status(500).json({ message: "Failed to update draft purchase order" });
     }
@@ -1211,7 +1372,7 @@ export function registerPurchaseRoutes(app: Express) {
 
   app.post("/api/purchase-orders/:id/documents", isAuthenticated, rolesOnly(purchaseEditRoles), documentUpload.single("file"), async (req: any, res) => {
     const orderId = parseId(req.params.id);
-    const file = req.file as Express.Multer.File | undefined;
+    const file = req.file as PurchaseUploadedFile | undefined;
     if (!orderId) return res.status(400).json({ message: "Invalid purchase order ID" });
     if (!validDocumentFile(file)) return res.status(400).json({ message: "Upload a valid PDF, JPG, PNG, or WebP document (maximum 10 MB)." });
     const staff = req.purchaseStaff as StaffUser;

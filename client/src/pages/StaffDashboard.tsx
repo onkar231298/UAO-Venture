@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { PunchInOutButton } from "@/components/hr/PunchInOutButton";
 import { MyAttendance } from "@/components/hr/MyAttendance";
+import PurchaseManagement from "@/pages/crm/PurchaseManagement";
 import { useSearch } from "wouter";
 import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
@@ -445,8 +446,12 @@ export default function StaffDashboard() {
             <MyAttendance />
           )}
 
+          {activeSection === 'purchase' && (
+            <PurchaseManagement />
+          )}
+
           {activeSection === 'settings' && <PortalAppearanceSettings />}
-          {activeSection !== 'overview' && activeSection !== 'my-attendance' && activeSection !== 'settings' && (
+          {activeSection !== 'overview' && activeSection !== 'my-attendance' && activeSection !== 'settings' && activeSection !== 'purchase' && (
             <Card>
               <CardHeader>
                 <CardTitle>

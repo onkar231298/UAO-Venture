@@ -43,15 +43,6 @@ export default function AccountsManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
-  // Queries
-  const { data: salesOrders } = useQuery({
-    queryKey: ["/api/sales-orders"],
-  });
-
-  const { data: purchaseOrders } = useQuery({
-    queryKey: ["/api/purchase-orders"],
-  });
-
   const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });

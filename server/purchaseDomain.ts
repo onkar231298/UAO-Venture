@@ -43,8 +43,35 @@ export function normalizeVendorName(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
 }
 
+export const restrictedCustomerKeys = new Set([
+  "customer", "customerId", "customerName", "customerCompanyName", "customerContactName",
+  "customerEmail", "customerPhone", "customerAddress", "company", "companyId", "companyName",
+  "companyEmail", "companyPhone", "billingAddress", "billingCity", "billingState",
+  "billingPostalCode", "billingCountry", "shippingAddress", "shippingCity", "shippingState",
+  "shippingPostalCode", "shippingCountry", "buyerName", "buyerEmail", "buyerPhone",
+]);
+
+export function redactCustomerIdentity<T>(value: T, role?: string | null): T {
+  if (["admin", "super_admin"].includes(role || "") || role?.includes("sales")) return value;
+  if (Array.isArray(value)) return value.map((item) => redactCustomerIdentity(item, role)) as T;
+  if (!value || typeof value !== "object" || value instanceof Date) return value;
+  const source = value as Record<string, unknown>;
+  const safe: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(source)) {
+    if (restrictedCustomerKeys.has(key)) continue;
+    if (key === "referenceId" && typeof item === "string" && /^(QDR|QTR)-/i.test(item)) {
+      safe[key] = `${item.toUpperCase().startsWith("QDR") ? "QDR" : "QTR"}-${String(source.id ?? "internal")}`;
+    } else {
+      safe[key] = redactCustomerIdentity(item, role);
+    }
+  }
+  return safe as T;
+}
+
 export function normalizeUnit(value: string | null | undefined): string {
-  const normalized = (value || "").trim().toLocaleLowerCase("en").replace(/[.\s_-]+/g, "");
+  const input = (value || "").trim().toLocaleLowerCase("en");
+  const parentheticalUnit = input.match(/\(\s*([a-z]+)\s*\)\s*$/)?.[1];
+  const normalized = (parentheticalUnit || input).replace(/[.\s_-]+/g, "");
   const aliases: Record<string, string> = {
     kilogram: "kg",
     kilograms: "kg",
@@ -85,7 +112,9 @@ function organicCategory(value: string | null | undefined): string {
 export function productOrganicCategory(productType: string | null | undefined, isOrganic: boolean | null | undefined): string {
   if (isOrganic) return "organic";
   const category = organicCategory(productType);
-  return category || "unknown";
+  return ["conventional", "natural", "synthetic", "nature_identical"].includes(category)
+    ? category
+    : "unknown";
 }
 
 export function calculateStockAvailability(input: {
@@ -241,7 +270,11 @@ export function isScopeEligibleForProduct(scope: {
   productType: string | null;
   isOrganic: boolean | null;
 } | null, now = new Date()): boolean {
-  if (!isCurrentApprovedScope(scope, now) || scope.scopeType !== "product" || !product) return false;
+  if (!isCurrentApprovedScope(scope, now) || !product) return false;
+  const requiredScopeType = (product.productType || "").toLocaleLowerCase("en").includes("packag")
+    ? "packaging"
+    : "product";
+  if (scope.scopeType !== requiredScopeType) return false;
   if (scope.productId !== product.id) return false;
   return scope.organicRequirement === productOrganicCategory(product.productType, product.isOrganic);
 }

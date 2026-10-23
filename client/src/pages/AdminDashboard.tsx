@@ -13,6 +13,7 @@ import SampleRequestsPage from "@/pages/crm/SampleRequestsPage";
 import HighVolumeBidsPage from "@/pages/crm/HighVolumeBidsPage";
 import QuotationNegotiationsPage from "@/pages/crm/QuotationNegotiationsPage";
 import SalesOrdersPage from "@/pages/crm/SalesOrdersPage";
+import PurchaseManagement from "@/pages/crm/PurchaseManagement";
 import NewsletterSubscriptions from "@/pages/admin/NewsletterSubscriptions";
 import BlogManagement from "@/pages/admin/BlogManagement";
 import UserManagement from "@/pages/admin/UserManagement";
@@ -798,6 +799,10 @@ export default function AdminDashboard() {
             <SalesOrdersPage />
           )}
 
+          {activeSection === 'purchase' && (
+            <PurchaseManagement />
+          )}
+
           {activeSection === 'newsletter' && (
             <NewsletterSubscriptions />
           )}
@@ -842,7 +847,7 @@ export default function AdminDashboard() {
             <DocumentUpload />
           )}
           
-          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && activeSection !== 'documents' && (
+          {activeSection !== 'overview' && activeSection !== 'website' && activeSection !== 'sales' && activeSection !== 'enquiry-sample' && activeSection !== 'bidding-requests' && activeSection !== 'sample-requests' && activeSection !== 'sales-crm' && activeSection !== 'company-management' && activeSection !== 'duplicate-review' && activeSection !== 'newsletter' && activeSection !== 'blog' && activeSection !== 'users' && activeSection !== 'settings' && activeSection !== 'hr-management' && activeSection !== 'quality-management' && activeSection !== 'security-monitor' && activeSection !== 'sales-activity-logs' && activeSection !== 'high-volume-bids' && activeSection !== 'quotation-negotiations' && activeSection !== 'sales-orders' && activeSection !== 'purchase' && activeSection !== 'documents' && (
             <Card className="p-4 sm:p-6">
               <CardHeader className="p-0 pb-4">
                 <CardTitle>

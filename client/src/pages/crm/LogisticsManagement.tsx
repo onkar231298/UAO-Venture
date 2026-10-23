@@ -30,12 +30,8 @@ export default function LogisticsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const { data: salesOrders } = useQuery({
-    queryKey: ["/api/sales-orders"],
-  });
-
-  const { data: inventory } = useQuery({
-    queryKey: ["/api/inventory"],
+  const { data: fulfillmentRows } = useQuery<any[]>({
+    queryKey: ["/api/purchase/fulfillment"],
   });
 
   const getShipmentStatusBadge = (status: string) => {
@@ -171,14 +167,14 @@ export default function LogisticsManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {salesOrders?.orders?.length ? (
+                  {fulfillmentRows?.length ? (
                     <div className="space-y-4">
-                      {salesOrders.orders.slice(0, 10).map((order: any) => (
+                      {fulfillmentRows.slice(0, 10).map((order: any) => (
                         <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
-                              <span className="font-medium">{order.orderId}</span>
-                              {getShipmentStatusBadge(order.status || 'pending')}
+                              <span className="font-medium">{order.soNumber}</span>
+                              <Badge variant="outline" className="capitalize">{String(order.fulfillmentStatus || "needs review").replaceAll("_", " ")}</Badge>
                             </div>
                             <div className="flex items-center space-x-2">
                               <Button variant="outline" size="sm">
@@ -191,32 +187,22 @@ export default function LogisticsManagement() {
                               </Button>
                             </div>
                           </div>
-                          <div className="grid md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid md:grid-cols-3 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-600">Customer:</span>
-                              <p className="font-medium">{order.customerId}</p>
+                              <span className="text-gray-600">Product:</span>
+                              <p className="font-medium">{order.productName}</p>
                             </div>
                             <div>
-                              <span className="text-gray-600">Amount:</span>
-                              <p className="font-medium">${order.totalAmount}</p>
+                              <span className="text-gray-600">Required quantity:</span>
+                              <p className="font-medium">{order.requiredQuantity} {order.unit}</p>
                             </div>
                             <div>
-                              <span className="text-gray-600">Expected Delivery:</span>
+                              <span className="text-gray-600">Required by:</span>
                               <p className="font-medium">
-                                {order.expectedDelivery ? new Date(order.expectedDelivery).toLocaleDateString() : 'TBD'}
+                                {order.requiredBy ? new Date(order.requiredBy).toLocaleDateString() : 'Not set'}
                               </p>
                             </div>
-                            <div>
-                              <span className="text-gray-600">Order Date:</span>
-                              <p className="font-medium">{new Date(order.orderDate).toLocaleDateString()}</p>
-                            </div>
                           </div>
-                          {order.shippingAddress && (
-                            <div className="mt-2 text-sm">
-                              <span className="text-gray-600">Shipping Address:</span>
-                              <p className="mt-1">{order.shippingAddress}</p>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

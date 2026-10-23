@@ -53,6 +53,7 @@ import WebsiteManagement from "@/pages/crm/WebsiteManagement";
 import PortalAppearanceSettings from "@/components/portal/PortalAppearanceSettings";
 import { useSearch } from "wouter";
 import { PortalThemeProvider, PortalThemeToggle } from "@/components/portal/PortalTheme";
+import QualityVendorScopeReview from "@/components/purchase/QualityVendorScopeReview";
 import { PortalMobileNav, type PortalNavDestination } from "@/components/portal/PortalMobileNav";
 
 const toggleQualityNavGroup = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -315,7 +316,7 @@ export default function QualityDashboard() {
           {activeSection === "field-quality-records" && <FieldQualityRecordsSection />}
           {activeSection === "test-reports" && <TestReportsSection />}
           {activeSection === "batch-management" && <BatchManagementSection />}
-          {activeSection === "material-vendors" && <MaterialVendorsSection />}
+          {activeSection === "material-vendors" && <QualityVendorScopeReview />}
           {activeSection === "customer-vendor-approvals" && <CustomerVendorApprovalsSection />}
           {activeSection === "ncrs" && <NCRsSection />}
           {activeSection === "website-management" && <WebsiteManagement />}

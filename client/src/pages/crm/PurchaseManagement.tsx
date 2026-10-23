@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import Header from "@/components/Header";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +28,8 @@ export default function PurchaseManagement() {
     onSuccess: (result: any) => { refresh(); window.alert(`Synchronized ${result.salesOrdersChecked} confirmed Sales Orders; ${result.requirementsCreatedOrUpdated} requirements updated.`); },
   });
   return <RoleBasedRoute allowedRoles={["super_admin", "admin", "purchase_manager", "purchase_executive"]}>
-    <div className="min-h-[100dvh] bg-background"><Header />
-      <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8">
+    <section className="w-full">
+      <main className="mx-auto w-full max-w-[1440px] py-2">
         <div className="mb-6 flex flex-col justify-between gap-4 border-b border-border pb-5 md:flex-row md:items-end">
           <div><p className="mb-2 text-xs font-semibold uppercase tracking-[.19em] text-primary">Atlas Ingredients · Operations</p>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Purchase management</h1>
@@ -70,7 +69,7 @@ export default function PurchaseManagement() {
         </Tabs>
         <p className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">Customer identities are not shown in Purchase Management. Coordinate only by Sales Order number.</p>
       </main>
-    </div>
+    </section>
   </RoleBasedRoute>;
 }
 
