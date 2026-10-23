@@ -7054,10 +7054,33 @@ export class DatabaseStorage implements IStorage {
       updateData.salesManager = assignedBy;
     }
     
-    const [lead] = await db.update(leads)
-      .set(updateData)
-      .where(eq(leads.id, leadId))
-      .returning();
+    const lead = await db.transaction(async (tx) => {
+      const [updatedLead] = await tx.update(leads)
+        .set(updateData)
+        .where(eq(leads.id, leadId))
+        .returning();
+      if (!updatedLead) throw new Error('Lead not found');
+
+      if (existingLead.companyId && assignedTo) {
+        const [updatedCompany] = await tx.update(companies)
+          .set({
+            assignedTo,
+            assignedBy,
+            assignedAt: new Date(),
+          })
+          .where(eq(companies.id, existingLead.companyId));
+        if (!updatedCompany) throw new Error('Company linked to lead not found');
+        await tx.insert(companyActivities).values({
+          companyId: existingLead.companyId,
+          activityType: 'assignment',
+          subject: 'Company Assigned',
+          description: 'Company assignment synchronized with lead assignment',
+          createdBy: assignedBy,
+        });
+      }
+
+      return updatedLead;
+    });
 
     // Get the new assignee's name
     const newAssignee = await this.getUser(assignedTo);

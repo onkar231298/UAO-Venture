@@ -32,3 +32,15 @@ Converting an assigned product inquiry or its quotation must likewise keep the i
 **Why:** the user expects a converted inquiry already assigned to a rep to appear in that rep's My Leads, and a real converted inquiry was being owned by the converting admin instead.
 
 **How to apply:** use the inquiry assignee for direct inquiry and accepted-quotation conversions, with the actor as fallback only when the inquiry has no assignee.
+
+Quotations created from an inquiry remain linked to that inquiry after it is converted, but must also appear in the linked CRM lead's Quotes tab for authorized staff.
+
+**Why:** the user expects the assigned sales representative to download an already-generated quotation from the lead record, even when the quotation was originally created against its inquiry.
+
+**How to apply:** when listing quotations for a lead, include direct lead quotations and quotations from inquiries whose `crmLeadId` points to that lead. Keep inquiry-linked quotes scoped to the inquiry assignee and direct lead quotes scoped to the assigned lead representative.
+
+When a lead is assigned or reassigned to a sales representative, assign its linked company to that same representative so it appears in My Companies.
+
+**Why:** the user expects the company behind an assigned lead to appear in that representative's company workspace automatically.
+
+**How to apply:** synchronize company ownership on inquiry/quotation lead conversion, manual lead creation, and lead reassignment. Keep lead and company reassignment atomic so the UI cannot report success while the company remains unassigned.

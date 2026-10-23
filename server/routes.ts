@@ -177,7 +177,7 @@ import { canManageInquiry } from "./inquiryAccess";
 async function canManageQuotation(
   userId: string,
   role: string | undefined,
-  quotation: { inquiryId?: number | null; createdBy?: string | null }
+  quotation: { inquiryId?: number | null; leadId?: number | null; createdBy?: string | null }
 ): Promise<boolean> {
   if (role === "admin" || role === "super_admin") return true;
   if (!role?.includes("sales")) return false;
@@ -185,7 +185,22 @@ async function canManageQuotation(
     const inquiry = await storage.getInquiry(quotation.inquiryId);
     return inquiry?.assignedTo === userId;
   }
+  if (quotation.leadId) {
+    const lead = await storage.getLead(quotation.leadId);
+    return lead?.assignedSalesRep === userId;
+  }
   return quotation.createdBy === userId;
+}
+
+async function syncCompanyAssignmentWithLead(
+  companyId: number | null | undefined,
+  salesRepId: string | null | undefined,
+  assignedBy: string,
+): Promise<void> {
+  if (!companyId || !salesRepId) return;
+  const company = await storage.getCompany(companyId);
+  if (company?.assignedTo === salesRepId) return;
+  await storage.assignCompany(companyId, salesRepId, assignedBy);
 }
 
 async function getActiveQuotationTermsTemplate() {
@@ -2957,7 +2972,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             primaryPhone: bidDetails.phoneNumber,
             dataCompleteness: 'partial',
             needsEnrichment: true,
-            assignedTo: userId,
+            assignedTo: targetSalesRep,
+            assignedBy: userId,
+            assignedAt: new Date(),
             createdBy: userId,
           })
           .returning();
@@ -2965,6 +2982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         companyId = company[0].id;
       }
+      await syncCompanyAssignmentWithLead(companyId, targetSalesRep, userId);
 
       // Step 2: Find or create contact person record (optional)
       const contactName = bidDetails.contactName;
@@ -3109,6 +3127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Step 1: Find or create company record
       const companyName = inquiryDetails.companyName || 'Unknown Company';
+      const assignedSalesRep = inquiryDetails.assignedTo || userId;
       let company = await db.select().from(companies)
         .where(eq(companies.companyName, companyName))
         .limit(1);
@@ -3128,7 +3147,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           primaryPhone: inquiryDetails.phoneNumber || customerDetails?.phoneNumber,
           dataCompleteness: customerDetails ? 'complete' : 'partial',
           needsEnrichment: !customerDetails,
-          assignedTo: inquiryDetails.assignedTo || userId,
+          assignedTo: assignedSalesRep,
+          assignedBy: userId,
+          assignedAt: new Date(),
           createdBy: userId,
           origin: 'website', // From customer inquiry
         };
@@ -3188,6 +3209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
+      await syncCompanyAssignmentWithLead(companyId, assignedSalesRep, userId);
 
       // Step 2: Find or create contact person record
       const contactName = inquiryDetails.contactName || (customerDetails ? `${customerDetails.firstName || ''} ${customerDetails.lastName || ''}`.trim() : null);
@@ -3247,7 +3269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expectedOrderValue: expectedOrderValue,
         currency: quotationResult.length > 0 ? quotationResult[0].currency : 'USD',
         specialRequirements: `Product Inquiry #${inquiryDetails.inquiryId} converted to lead\n\nProduct: ${inquiryDetails.productId || 'N/A'}\nQuantity: ${inquiryDetails.quantity || 'N/A'} ${inquiryDetails.unit || ''}${quotationInfo}\n\nOriginal Message: ${inquiryDetails.message || 'N/A'}\n\nConversion Notes: ${notes || 'N/A'}`,
-        assignedSalesRep: inquiryDetails.assignedTo || userId,
+        assignedSalesRep,
         assignedBy: userId,
         assignedAt: new Date(),
         stageEnteredAt: new Date(),
@@ -5052,6 +5074,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Step 1: Find or create company record
       const companyName = inquiry.companyName || 'Unknown Company';
+      const assignedSalesRep = inquiry.assignedTo || userId;
       let company = await db.select().from(companies)
         .where(eq(companies.companyName, companyName))
         .limit(1);
@@ -5066,7 +5089,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             primaryPhone: inquiry.phoneNumber,
             dataCompleteness: 'partial',
             needsEnrichment: true,
-            assignedTo: inquiry.assignedTo || userId,
+            assignedTo: assignedSalesRep,
+            assignedBy: userId,
+            assignedAt: new Date(),
             createdBy: userId,
           })
           .returning();
@@ -5074,6 +5099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         companyId = company[0].id;
       }
+      await syncCompanyAssignmentWithLead(companyId, assignedSalesRep, userId);
 
       // Step 2: Find or create contact person record (optional)
       const contactName = inquiry.contactName;
@@ -5117,7 +5143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expectedOrderValue: quotation.totalAmount ? quotation.totalAmount.toString() : null,
         currency: 'USD',
         specialRequirements: `Quotation #${quotation.quotationId} accepted by customer\n\nProduct: ${inquiry.productId || 'N/A'}\nQuantity: ${quotation.quantity || 'N/A'} ${quotation.unit || ''}\nUnit Price: $${quotation.unitPrice || 'N/A'}\nTotal Amount: $${quotation.totalAmount || 'N/A'}\n\nOriginal Message: ${inquiry.message || 'N/A'}`,
-        assignedSalesRep: inquiry.assignedTo || userId,
+        assignedSalesRep,
         assignedBy: userId,
         assignedAt: new Date(),
         stageEnteredAt: new Date(),
@@ -10789,21 +10815,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/crm/leads', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || (!user.role?.includes('sales') && !user.role?.includes('admin'))) {
+        return res.status(403).json({ message: "Insufficient permissions to create leads" });
+      }
+      const requestedAssignee = req.body.assignedSalesRep || req.body.assignedTo;
+      const mayAssignOtherReps = ['admin', 'super_admin', 'sales_manager'].includes(user.role);
+      if (!mayAssignOtherReps && requestedAssignee && requestedAssignee !== userId) {
+        return res.status(403).json({ message: "Sales representatives can only assign leads to themselves" });
+      }
+
       const { additionalContacts, ...leadFields } = req.body;
       
       const leadData = insertLeadSchema.parse({
         ...leadFields,
         createdBy: userId,
-        assignedSalesRep: req.body.assignedSalesRep || userId,
+        assignedSalesRep: requestedAssignee || userId,
         assignedBy: userId, // Track who assigned this lead
         assignedAt: new Date(), // Track when this lead was assigned
-        assignmentMode: req.body.assignedSalesRep ? 'manual' : 'auto',
+        assignmentMode: requestedAssignee ? 'manual' : 'auto',
         isManualLead: req.body.isManualLead !== undefined ? req.body.isManualLead : true, // Default to manual for API-created leads
         leadSource: req.body.leadSource || 'manual',
         stageEnteredAt: new Date() // Set when stage is entered
       });
 
-      if (!req.body.assignedSalesRep) {
+      if (!requestedAssignee) {
         const autoAssignedUserId = await storage.applyAssignmentRules(leadData);
         if (autoAssignedUserId) {
           leadData.assignedSalesRep = autoAssignedUserId;
@@ -10812,6 +10848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const lead = await storage.createLead(leadData);
+      await syncCompanyAssignmentWithLead(lead.companyId, lead.assignedSalesRep, userId);
       
       // Create company contacts for additional contacts if provided
       if (additionalContacts && Array.isArray(additionalContacts) && additionalContacts.length > 0 && leadData.companyId) {
@@ -10857,9 +10894,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { additionalContacts, ...leadFields } = req.body;
+      const requestedAssignee = leadFields.assignedSalesRep || leadFields.assignedTo;
       
       const leadData = insertLeadSchema.parse({
         ...leadFields,
+        assignedSalesRep: requestedAssignee,
         createdBy: userId,
         assignedBy: userId,
         assignedAt: new Date(),
@@ -10870,6 +10909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const lead = await storage.createLead(leadData);
+      await syncCompanyAssignmentWithLead(lead.companyId, lead.assignedSalesRep, userId);
       
       // Create company contacts for additional contacts if provided
       if (additionalContacts && Array.isArray(additionalContacts) && additionalContacts.length > 0 && leadData.companyId) {
@@ -10999,19 +11039,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const lead = await storage.assignLead(leadId, assignedTo, userId, reason);
-      
-      // Also assign the company to the same sales rep if the lead has a companyId
-      if (lead.companyId && assignedTo) {
-        try {
-          await storage.updateCompany(lead.companyId, { 
-            assignedTo: assignedTo,
-            assignedBy: userId 
-          });
-        } catch (companyError) {
-          console.error('Failed to update company assignment:', companyError);
-          // Continue even if company update fails
-        }
-      }
       
       // Create notification for the assigned sales rep
       try {
@@ -13725,21 +13752,63 @@ Sitemap: https://bright-organic.com/sitemap.xml`);
   // Get quotations for a lead
   app.get('/api/crm/leads/:leadId/quotations', isAuthenticated, async (req: any, res) => {
     try {
-      const leadId = parseInt(req.params.leadId);
+      const leadId = Number(req.params.leadId);
       const userId = req.user?.id || req.user?.claims?.sub;
 
       if (!userId) {
         return res.status(401).json({ message: 'User not authenticated' });
       }
+      if (!Number.isInteger(leadId) || leadId <= 0) {
+        return res.status(400).json({ message: 'Invalid lead ID' });
+      }
 
-      // Verify lead exists
       const lead = await storage.getLead(leadId);
       if (!lead) {
         return res.status(404).json({ message: 'Lead not found' });
       }
 
-      const result = await storage.getQuotations({ leadId });
-      res.json(result);
+      const user = await storage.getUser(userId);
+      const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+      if (!user || (!isAdmin && lead.assignedSalesRep !== userId)) {
+        return res.status(403).json({ message: 'You can only view quotations for leads assigned to you' });
+      }
+
+      // Quotations created from an enquiry remain linked to that enquiry even
+      // after it is converted to a lead. Include those alongside lead-native quotes.
+      const linkedInquiries = await db.select({
+        id: inquiries.id,
+        assignedTo: inquiries.assignedTo,
+      })
+        .from(inquiries)
+        .where(eq(inquiries.crmLeadId, leadId));
+      const visibleInquiryIds = linkedInquiries
+        .filter(inquiry => isAdmin || inquiry.assignedTo === userId)
+        .map(inquiry => inquiry.id);
+      const [leadQuotes, ...inquiryQuoteResults] = await Promise.all([
+        storage.getQuotations({ leadId, limit: 1000, offset: 0 }),
+        ...visibleInquiryIds.map(inquiryId =>
+          storage.getQuotations({ inquiryId, limit: 1000, offset: 0 })
+        ),
+      ]);
+      const uniqueQuotes = new Map<number, any>();
+      const visibleInquiryIdSet = new Set(visibleInquiryIds);
+      for (const quotation of [
+        ...leadQuotes.quotations,
+        ...inquiryQuoteResults.flatMap(result => result.quotations),
+      ]) {
+        const canViewQuotation = isAdmin || (
+          quotation.inquiryId
+            ? visibleInquiryIdSet.has(quotation.inquiryId)
+            : quotation.leadId === leadId
+        );
+        if (canViewQuotation) {
+          uniqueQuotes.set(quotation.id, quotation);
+        }
+      }
+      const quotations = [...uniqueQuotes.values()]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json({ quotations, total: quotations.length });
     } catch (error: any) {
       console.error('Error fetching lead quotations:', error);
       res.status(500).json({ message: 'Failed to fetch quotations' });
