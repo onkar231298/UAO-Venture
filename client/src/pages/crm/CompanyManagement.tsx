@@ -1,4 +1,5 @@
 import { CANONICAL_COUNTRIES } from "@shared/countries";
+import { companySchema } from "@/lib/companyFormSchemas";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +9,7 @@ import { useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { applyCompanyServerErrors } from "@/lib/companyFormValidation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,42 +93,6 @@ const COMPANY_STAGES = [
   { id: "inactive", label: "Inactive", color: "bg-slate-100 text-slate-800" },
   { id: "churned", label: "Churned", color: "bg-red-100 text-red-800" },
 ];
-
-const companySchema = z.object({
-  companyName: z.string().min(1, "Company name is required"),
-  primaryEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  primaryPhone: z.string().optional(),
-  gstNumber: z.string().optional(),
-  industryType: z.string().optional(),
-  companySize: z.string().optional(),
-  website: z.string().optional().or(z.literal("")),
-  
-  // Primary Address
-  addressStreet: z.string().optional(),
-  addressCity: z.string().optional(),
-  addressState: z.string().optional(),
-  addressCountry: z.string().optional(),
-  addressZip: z.string().optional(),
-  
-  // Factory/Warehouse Address
-  factoryAddressStreet: z.string().optional(),
-  factoryAddressCity: z.string().optional(),
-  factoryAddressState: z.string().optional(),
-  factoryAddressCountry: z.string().optional(),
-  factoryAddressZip: z.string().optional(),
-  
-  // Department contact phones
-  departmentPhones: z.array(z.object({
-    department: z.string(),
-    phone: z.string(),
-  })).optional(),
-  
-  // Additional emails with positions
-  additionalEmails: z.array(z.object({
-    position: z.string(),
-    email: z.string().email("Invalid email"),
-  })).optional(),
-});
 
 interface Company {
   id: number;
@@ -902,6 +868,7 @@ export default function CompanyManagement() {
   // Company form
   const form = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
+    mode: "onChange",
     defaultValues: {
       companyName: "",
       primaryEmail: "",
@@ -988,6 +955,7 @@ export default function CompanyManagement() {
       });
     },
     onError: (error: Error) => {
+      applyCompanyServerErrors(error, form);
       toast({
         title: "Error",
         description: error.message || "Failed to create company",
@@ -1070,6 +1038,7 @@ export default function CompanyManagement() {
       });
     },
     onError: (error: Error) => {
+      applyCompanyServerErrors(error, editForm);
       toast({
         title: "Error",
         description: error.message || "Failed to update company",
@@ -1081,6 +1050,7 @@ export default function CompanyManagement() {
   // Edit form
   const editForm = useForm<z.infer<typeof companySchema>>({
     resolver: zodResolver(companySchema),
+    mode: "onChange",
     defaultValues: {
       companyName: "",
       primaryEmail: "",

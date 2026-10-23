@@ -1,4 +1,6 @@
 import { CANONICAL_COUNTRIES } from "@shared/countries";
+import { companyEditSchema } from "@/lib/companyFormSchemas";
+import { applyCompanyServerErrors } from "@/lib/companyFormValidation";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -926,21 +928,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   normal: "bg-gray-100 text-gray-800",
 };
 
-const companyEditSchema = z.object({
-  companyName: z.string().min(1, "Company name is required"),
-  primaryEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  primaryPhone: z.string().optional(),
-  gstNumber: z.string().optional(),
-  industryType: z.string().optional(),
-  companySize: z.string().optional(),
-  website: z.string().optional().or(z.literal("")),
-  addressStreet: z.string().optional(),
-  addressCity: z.string().optional(),
-  addressState: z.string().optional(),
-  addressCountry: z.string().optional(),
-  addressZip: z.string().optional(),
-});
-
 interface DroppableColumnProps {
   id: string;
   children: React.ReactNode;
@@ -1145,6 +1132,7 @@ export default function MyCompanies() {
   // Edit company form
   const editForm = useForm<z.infer<typeof companyEditSchema>>({
     resolver: zodResolver(companyEditSchema),
+    mode: "onChange",
     defaultValues: {
       companyName: "",
       primaryEmail: "",
@@ -1498,6 +1486,7 @@ export default function MyCompanies() {
       });
     },
     onError: (error: Error) => {
+      applyCompanyServerErrors(error, editForm);
       toast({
         title: "Error",
         description: error.message || "Failed to update company",
