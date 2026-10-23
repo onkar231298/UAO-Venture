@@ -1457,6 +1457,8 @@ export default function MyCompanies() {
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales/my-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales/dashboard'] });
       setShowConvertDialog(false);
       setSelectedCompany(null);
       setConvertProducts([{ productId: null, productName: '', quantity: '', unit: 'kg' }]);

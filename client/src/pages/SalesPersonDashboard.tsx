@@ -138,6 +138,9 @@ export default function SalesPersonDashboard() {
   const { data: leadsData, isLoading: leadsLoading } = useQuery<{ leads: any[]; total: number }>({
     queryKey: ['/api/sales/my-leads'],
     enabled: isAuthenticated && !!user,
+    refetchInterval: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const { data: samplesData, isLoading: samplesLoading } = useQuery<{ requests: any[]; total: number }>({

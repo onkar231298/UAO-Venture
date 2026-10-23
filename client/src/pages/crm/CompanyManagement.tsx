@@ -1182,6 +1182,7 @@ export default function CompanyManagement() {
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/crm/companies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/crm/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales/my-leads'] });
       setShowConvertDialog(false);
       setViewDetailsOpen(false);
       setSelectedCompany(null);

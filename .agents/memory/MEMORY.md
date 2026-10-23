@@ -32,7 +32,7 @@
 - [Development/live data parity](dev-prod-db-data-sync.md) — keep databases separate; match company/contact data when publishing, not continuously; schema publishing does not sync records.
 - [Uncertain CRM saves](uncertain-crm-saves.md) — browser fetch failures do not prove write rejection; verify persisted state before retrying or claiming a cause.
 - [All-user redesign scope](interface-redesign-scope.md) — same style across all signed-in roles; preserving every available option is the owner's highest priority.
-- [Inquiry ownership and quote access](inquiry-assignment-scope.md) — admins see all enquiries; sales users see only assigned enquiries, and related quote access follows that assignment.
+- [Inquiry and lead ownership](inquiry-assignment-scope.md) — admins see all enquiries; reps see assigned enquiries and company-converted leads retain their assigned owner.
 - [Atlas Ingredients rebrand](atlas-ingredients-rebrand.md) — Use Atlas Ingredients in active app content; keep existing domains and email addresses until replacements are supplied.
 - [Public website color palette](public-site-color-palette.md) — Public pages share Atlas forest green, sage, and warm neutrals; keep portal themes and meaningful identity/status colors distinct.
 - [Quotation terms governance](quotation-terms-governance.md) — Keep supplied terms pending review and manage current/future reusable templates from Settings > Template Management.

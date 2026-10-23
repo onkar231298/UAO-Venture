@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { SalesLayout } from "@/components/layouts/SalesLayout";
@@ -220,6 +220,10 @@ export default function SalesLeadManagement() {
       return response.json();
     },
     enabled: !!user,
+    // A company can be converted in a different staff session, where local cache invalidation cannot reach this page.
+    refetchInterval: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const { data: stats } = useQuery({
@@ -263,13 +267,6 @@ export default function SalesLeadManagement() {
     toast({ title: "Leads data has been updated" });
     setTimeout(() => setIsRefreshing(false), 500);
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: leadsQueryKey });
-    }, 300000);
-    return () => clearInterval(interval);
-  }, []);
 
   const leads = (leadsData as any)?.leads || [];
 
