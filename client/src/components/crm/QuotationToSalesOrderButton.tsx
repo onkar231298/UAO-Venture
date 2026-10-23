@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import ManualSalesOrderForm from "@/components/crm/ManualSalesOrderForm";
 import type { ManualSalesOrder } from "../../../../shared/salesOrderContract";
@@ -12,7 +13,7 @@ interface QuotationToSalesOrderButtonProps {
   className?: string;
   disabled?: boolean;
   disabledReason?: string;
-  onConverted?: () => void;
+  onConverted?: (salesOrder: { id: number; soNumber?: string }) => void;
 }
 
 export default function QuotationToSalesOrderButton({
@@ -39,7 +40,7 @@ export default function QuotationToSalesOrderButton({
       if (!response.ok) {
         throw new Error(result.message || "Could not create this Sales Order");
       }
-      return result as { soNumber?: string };
+      return result as { id: number; soNumber?: string };
     },
     onSuccess: (salesOrder) => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
@@ -48,9 +49,17 @@ export default function QuotationToSalesOrderButton({
       setOpen(false);
       toast({
         title: "Sales Order created",
-        description: `${salesOrder.soNumber || "Draft order"} was created from ${quotationNumber}.`,
+        description: `${salesOrder.soNumber || "Draft order"} was created from ${quotationNumber}. The PDF is ready to download.`,
+        action: (
+          <ToastAction
+            altText="Download Sales Order PDF"
+            onClick={() => window.open(`/api/sales-orders/${salesOrder.id}/pdf`, "_blank")}
+          >
+            Download PDF
+          </ToastAction>
+        ),
       });
-      onConverted?.();
+      onConverted?.(salesOrder);
     },
     onError: (error: Error) => {
       toast({

@@ -2710,8 +2710,18 @@ Packaging: Standard export packaging`,
                                   quotationNumber={quote.quotationId || quote.quotationNumber}
                                   disabled={!['draft', 'sent', 'accepted', 'expired'].includes(quote.status)}
                                   disabledReason="Sales Orders cannot be created from rejected or already-converted quotations."
-                                  onConverted={() => {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
+                                  onConverted={(salesOrder) => {
+                                    const quotationQueryKey = ['/api/crm/leads', lead?.id, 'quotations'];
+                                    queryClient.setQueryData<{ quotations: any[]; total: number }>(
+                                      quotationQueryKey,
+                                      (current) => current && ({
+                                        ...current,
+                                        quotations: current.quotations.map(item =>
+                                          item.id === quote.id ? { ...item, salesOrderId: salesOrder.id } : item
+                                        ),
+                                      }),
+                                    );
+                                    queryClient.invalidateQueries({ queryKey: quotationQueryKey });
                                     queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });
                                   }}
                                 />
