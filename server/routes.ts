@@ -6,6 +6,8 @@ import { db } from "./db";
 import xlsx from "xlsx";
 import { setupAuth, isAuthenticated, isCustomerAuthenticated, createCustomerSessionUser } from "./replitAuth";
 import hrRoutes from "./hrRoutes";
+import { registerPurchaseRoutes } from "./purchaseRoutes";
+import { syncConfirmedSalesOrder } from "./purchaseService";
 import { 
   insertInquirySchema, 
   insertQuotationSchema, 
@@ -235,6 +237,16 @@ async function requireQuotationPdfTemplateSuperAdmin(req: any, res: any) {
     return null;
   }
   return user;
+}
+
+function canAccessSalesOrder(user: any, userId: string, order: any): boolean {
+  if (!user || !order) return false;
+  if (["admin", "super_admin"].includes(user.role || "")) return true;
+  if (user.role === "customer") return order.customerId === userId;
+  if (["sales_manager", "sales_executive"].includes(user.role || "")) {
+    return order.assignedToUserId === userId;
+  }
+  return false;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -3842,6 +3854,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      if (!["customer", "sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Quotation customer data is restricted to the customer, assigned Sales, or authorized Admin." });
+      }
 
       const { status, myOnly, startDate, endDate, dateFrom, dateTo, search, limit = '50', offset = '0' } = req.query;
       
@@ -3900,6 +3915,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      if (!user || !["customer", "sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Quotation customer data is restricted to the customer, assigned Sales, or authorized Admin." });
+      }
       const quotationId = Number(req.params.id);
       if (!Number.isInteger(quotationId) || quotationId <= 0) {
         return res.status(400).json({ message: "Invalid quotation ID" });
@@ -5695,6 +5713,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      if (!["customer", "sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Sales order customer data is restricted to the customer, assigned Sales, or authorized Admin." });
+      }
 
       const { status, companyId, leadId, assignedToUserId, myOnly, startDate, endDate, dateFrom, dateTo, search, limit = '50', offset = '0' } = req.query;
       
@@ -5706,8 +5727,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Role-based filtering
       if (user.role === 'customer') {
         filters.customerId = userId;
-      } else if (myOnly === 'true' || (user.role?.includes('sales') && !user.role?.includes('admin'))) {
-        // Sales agents see only their assigned sales orders, or admin can filter with myOnly=true
+      } else if (myOnly === 'true' || ["sales_manager", "sales_executive"].includes(user.role || "")) {
+        // Sales staff see only their assigned orders; admins may optionally filter to their own.
         filters.assignedToUserId = userId;
       }
 
@@ -5761,6 +5782,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get next sales order number - Must be BEFORE :id route
   app.get('/api/sales-orders/next-number', isAuthenticated, async (req: any, res) => {
     try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
       const nextNumber = await storage.getNextSalesOrderNumber();
       res.json({ soNumber: nextNumber });
     } catch (error) {
@@ -5786,13 +5811,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Sales order not found" });
       }
 
-      // Check access for customers
-      if (user.role === 'customer' && order.customerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      if (user.role?.includes('sales') && !user.role?.includes('admin') &&
-          order.assignedToUserId !== userId) {
-        return res.status(403).json({ message: "This sales order is not assigned to you" });
+      if (!canAccessSalesOrder(user, userId, order)) {
+        return res.status(403).json({ message: "You are not authorized to view this Sales Order." });
       }
 
       res.json(order);
@@ -5818,12 +5838,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) {
         return res.status(404).json({ message: "Sales order not found" });
       }
-      if (user.role === 'customer' && order.customerId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      if (user.role?.includes('sales') && !user.role?.includes('admin') &&
-          order.assignedToUserId !== userId) {
-        return res.status(403).json({ message: "This sales order is not assigned to you" });
+      if (!canAccessSalesOrder(user, userId, order)) {
+        return res.status(403).json({ message: "You are not authorized to download this Sales Order." });
       }
 
       // Generate PDF
@@ -6115,6 +6131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedOrder = await storage.updateSalesOrderStatus(parseInt(id), status, userId, notes);
+      if (status === "confirmed") {
+        try {
+          await syncConfirmedSalesOrder(parseInt(id));
+        } catch (syncError) {
+          console.error("Sales Order status changed but fulfillment sync failed:", syncError);
+          return res.status(500).json({
+            message: "Sales Order status was updated, but its fulfillment requirement could not be synchronized. Retry the status update or ask an administrator to sync confirmed orders.",
+          });
+        }
+      }
       res.json(updatedOrder);
     } catch (error) {
       console.error("Error updating sales order status:", error);
@@ -6126,6 +6152,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/sales-orders/:id/items', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const [user, order] = await Promise.all([
+        storage.getUser(userId),
+        storage.getSalesOrderWithDetails(parseInt(id)),
+      ]);
+      if (!order) return res.status(404).json({ message: "Sales order not found" });
+      if (!canAccessSalesOrder(user, userId, order)) return res.status(403).json({ message: "You are not authorized to view this Sales Order." });
       const items = await storage.getSalesOrderItems(parseInt(id));
       res.json(items);
     } catch (error) {
@@ -6138,6 +6171,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/sales-orders/:id/history', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const [user, order] = await Promise.all([
+        storage.getUser(userId),
+        storage.getSalesOrderWithDetails(parseInt(id)),
+      ]);
+      if (!order) return res.status(404).json({ message: "Sales order not found" });
+      if (!canAccessSalesOrder(user, userId, order)) return res.status(403).json({ message: "You are not authorized to view this Sales Order." });
       const history = await storage.getSalesOrderStatusHistory(parseInt(id));
       res.json(history);
     } catch (error) {
@@ -6150,6 +6190,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/sales-orders/:id/activities', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const [user, order] = await Promise.all([
+        storage.getUser(userId),
+        storage.getSalesOrderWithDetails(parseInt(id)),
+      ]);
+      if (!order) return res.status(404).json({ message: "Sales order not found" });
+      if (!canAccessSalesOrder(user, userId, order)) return res.status(403).json({ message: "You are not authorized to view this Sales Order." });
       const activities = await storage.getSalesOrderActivities(parseInt(id));
       res.json(activities);
     } catch (error) {
@@ -6161,9 +6208,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales orders by company
   app.get('/api/companies/:companyId/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Sales order customer data is restricted to Sales and authorized Admin." });
+      }
       const { companyId } = req.params;
       const orders = await storage.getSalesOrdersByCompany(parseInt(companyId));
-      res.json(orders);
+      const visibleOrders = ["admin", "super_admin"].includes(user.role || "")
+        ? orders
+        : orders.filter((order: any) => order.assignedToUserId === userId);
+      res.json(visibleOrders);
     } catch (error) {
       console.error("Error fetching company sales orders:", error);
       res.status(500).json({ message: "Failed to fetch company sales orders" });
@@ -6173,41 +6228,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales orders by lead
   app.get('/api/leads/:leadId/sales-orders', isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user || !["sales_manager", "sales_executive", "admin", "super_admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Sales order customer data is restricted to Sales and authorized Admin." });
+      }
       const { leadId } = req.params;
       const orders = await storage.getSalesOrdersByLead(parseInt(leadId));
-      res.json(orders);
+      const visibleOrders = ["admin", "super_admin"].includes(user.role || "")
+        ? orders
+        : orders.filter((order: any) => order.assignedToUserId === userId);
+      res.json(visibleOrders);
     } catch (error) {
       console.error("Error fetching lead sales orders:", error);
       res.status(500).json({ message: "Failed to fetch lead sales orders" });
-    }
-  });
-
-  // Get purchase orders (for purchase team)
-  app.get('/api/purchase-orders', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      
-      if (!user || (!user.role?.includes('purchase') && !user.role?.includes('admin'))) {
-        return res.status(403).json({ message: "Insufficient permissions" });
-      }
-
-      const { status, limit = '50', offset = '0' } = req.query;
-      
-      const filters: any = {
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
-      };
-
-      if (status) {
-        filters.status = status as string;
-      }
-
-      const result = await storage.getPurchaseOrders(filters);
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching purchase orders:", error);
-      res.status(500).json({ message: "Failed to fetch purchase orders" });
     }
   });
 
@@ -16145,22 +16179,26 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
   });
 
   app.post('/api/quality/vendors', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
-    try {
-      const validated = insertQualityVendorSchema.parse(req.body);
-      const result = await storage.createQualityVendor(validated);
-      res.status(201).json(result);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Validation error', errors: error.errors });
-      }
-      console.error('Error creating quality vendor:', error);
-      res.status(500).json({ message: 'Failed to create vendor' });
-    }
+    return res.status(403).json({ message: "Vendor registration is managed by the Purchase team. Quality reviews only submitted technical scopes." });
   });
 
   app.patch('/api/quality/vendors/:id', isAuthenticated, isQualityAuthorized, async (req: any, res) => {
     try {
-      const result = await storage.updateQualityVendor(parseInt(req.params.id), req.body);
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "Invalid vendor ID" });
+      const auditSchema = z.object({
+        lastAuditDate: z.string().datetime().nullable().optional(),
+        nextAuditDue: z.string().datetime().nullable().optional(),
+        qualityScore: z.number().int().min(0).max(100).nullable().optional(),
+        notes: z.string().max(5000).nullable().optional(),
+      }).strict().refine((value) => Object.keys(value).length > 0, "Provide quality audit fields only");
+      const parsed = auditSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Only audit dates, quality score, and internal notes can be changed here." });
+      const result = await storage.updateQualityVendor(id, {
+        ...parsed.data,
+        lastAuditDate: parsed.data.lastAuditDate ? new Date(parsed.data.lastAuditDate) : parsed.data.lastAuditDate,
+        nextAuditDue: parsed.data.nextAuditDue ? new Date(parsed.data.nextAuditDue) : parsed.data.nextAuditDue,
+      } as any);
       res.json(result);
     } catch (error) {
       console.error('Error updating quality vendor:', error);
@@ -17444,6 +17482,7 @@ DESIGN RULES (follow all of them, no exceptions): - Outer page wrapper: <table w
 
   // Register HR Management routes
   app.use(hrRoutes);
+  registerPurchaseRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

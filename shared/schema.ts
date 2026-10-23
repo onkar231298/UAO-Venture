@@ -1148,14 +1148,20 @@ export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
   poId: varchar("po_id", { length: 50 }).notNull().unique(),
   vendorId: varchar("vendor_id").references(() => users.id),
+  vendorRecordId: integer("vendor_record_id").references(() => qualityVendors.id),
   orderDate: timestamp("order_date").defaultNow(),
   expectedDelivery: timestamp("expected_delivery"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
-  status: varchar("status", { length: 50 }).default("pending"), // pending, confirmed, received, cancelled
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  status: varchar("status", { length: 50 }).default("draft"),
   paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
   terms: text("terms"),
   notes: text("notes"),
   createdBy: varchar("created_by").references(() => users.id),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  issuedAt: timestamp("issued_at"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvalNote: text("approval_note"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -3430,14 +3436,25 @@ export type InsertBatchMaterialConsumption = z.infer<typeof insertBatchMaterialC
 export const qualityVendors = pgTable("quality_vendors", {
   id: serial("id").primaryKey(),
   vendorName: varchar("vendor_name", { length: 500 }).notNull(),
+  normalizedVendorName: varchar("normalized_vendor_name", { length: 500 }),
   vendorCode: varchar("vendor_code", { length: 50 }),
   contactPerson: varchar("contact_person", { length: 255 }),
   contactEmail: varchar("contact_email", { length: 255 }),
   contactPhone: varchar("contact_phone", { length: 50 }),
   address: text("address"),
+  taxRegistrationNumber: varchar("tax_registration_number", { length: 100 }),
+  registrationNumber: varchar("registration_number", { length: 100 }),
+  website: varchar("website", { length: 500 }),
   materialSupplied: text("material_supplied"),
   certifications: jsonb("certifications"), // ["EU Organic", "USDA NOP", ...]
+  vendorStatus: varchar("vendor_status", { length: 20 }).notNull().default("active"),
   approvalStatus: varchar("approval_status", { length: 30 }).default("pending"), // pending, approved, conditionally_approved, rejected, suspended
+  generalApprovalStatus: varchar("general_approval_status", { length: 30 }).default("pending"),
+  submittedAt: timestamp("submitted_at"),
+  submittedById: varchar("submitted_by_id").references(() => users.id),
+  generalReviewedAt: timestamp("general_reviewed_at"),
+  generalReviewedById: varchar("general_reviewed_by_id").references(() => users.id),
+  generalReviewNotes: text("general_review_notes"),
   approvalDate: timestamp("approval_date"),
   lastAuditDate: timestamp("last_audit_date"),
   nextAuditDue: timestamp("next_audit_due"),
@@ -3449,6 +3466,8 @@ export const qualityVendors = pgTable("quality_vendors", {
 }, (table) => [
   index("idx_qvendor_status").on(table.approvalStatus),
   index("idx_qvendor_name").on(table.vendorName),
+  uniqueIndex("quality_vendors_normalized_name_unique").on(table.normalizedVendorName),
+  uniqueIndex("quality_vendors_code_unique").on(table.vendorCode).where(sql`${table.vendorCode} is not null`),
 ]);
 
 export const insertQualityVendorSchema = createInsertSchema(qualityVendors).omit({
@@ -3458,6 +3477,191 @@ export const insertQualityVendorSchema = createInsertSchema(qualityVendors).omit
 });
 export type QualityVendor = typeof qualityVendors.$inferSelect;
 export type InsertQualityVendor = z.infer<typeof insertQualityVendorSchema>;
+
+// Purchase management adds a scoped approval layer to the existing quality-vendor directory.
+// Financial details and file contents live separately so routine vendor lists cannot expose them.
+export const vendorApprovalScopes = pgTable("vendor_approval_scopes", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => qualityVendors.id, { onDelete: "cascade" }),
+  scopeType: varchar("scope_type", { length: 30 }).notNull(), // product, packaging, service
+  productId: integer("product_id").references(() => products.id),
+  scopeDescription: text("scope_description").notNull(),
+  organicRequirement: varchar("organic_requirement", { length: 30 }).notNull().default("not_applicable"),
+  certificationScheme: varchar("certification_scheme", { length: 255 }),
+  qualityRequired: boolean("quality_required").notNull().default(true),
+  approvalStatus: varchar("approval_status", { length: 30 }).notNull().default("pending"),
+  reviewedById: varchar("reviewed_by_id").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  validUntil: timestamp("valid_until"),
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("vendor_scope_vendor_status_idx").on(table.vendorId, table.approvalStatus),
+  index("vendor_scope_product_idx").on(table.productId),
+]);
+export const insertVendorApprovalScopeSchema = createInsertSchema(vendorApprovalScopes).omit({
+  id: true, createdAt: true, updatedAt: true, reviewedById: true, reviewedAt: true, reviewNotes: true,
+});
+export type VendorApprovalScope = typeof vendorApprovalScopes.$inferSelect;
+export type InsertVendorApprovalScope = z.infer<typeof insertVendorApprovalScopeSchema>;
+
+export const vendorFinancialProfiles = pgTable("vendor_financial_profiles", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().unique().references(() => qualityVendors.id, { onDelete: "cascade" }),
+  beneficiaryName: varchar("beneficiary_name", { length: 255 }),
+  bankName: varchar("bank_name", { length: 255 }),
+  accountNumber: varchar("account_number", { length: 100 }),
+  routingCode: varchar("routing_code", { length: 100 }),
+  swiftCode: varchar("swift_code", { length: 30 }),
+  currency: varchar("currency", { length: 3 }),
+  paymentTerms: text("payment_terms"),
+  updatedById: varchar("updated_by_id").references(() => users.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const salesOrderFulfillmentRequirements = pgTable("sales_order_fulfillment_requirements", {
+  id: serial("id").primaryKey(),
+  salesOrderId: integer("sales_order_id").notNull().references(() => salesOrders.id, { onDelete: "cascade" }),
+  salesOrderItemId: integer("sales_order_item_id").notNull().unique().references(() => salesOrderItems.id, { onDelete: "cascade" }),
+  productId: integer("product_id").references(() => products.id),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  specification: text("specification"),
+  requiredQuantity: decimal("required_quantity", { precision: 14, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  requiredBy: timestamp("required_by"),
+  priority: varchar("priority", { length: 20 }).notNull().default("normal"),
+  stockAnalysis: jsonb("stock_analysis").$type<Record<string, unknown>>(),
+  fulfillmentStatus: varchar("fulfillment_status", { length: 30 }).notNull().default("needs_review"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("so_fulfillment_order_idx").on(table.salesOrderId),
+  index("so_fulfillment_status_idx").on(table.fulfillmentStatus),
+]);
+
+export const materialRequisitions = pgTable("material_requisitions", {
+  id: serial("id").primaryKey(),
+  requisitionNumber: varchar("requisition_number", { length: 50 }).notNull().unique(),
+  fulfillmentRequirementId: integer("fulfillment_requirement_id").unique()
+    .references(() => salesOrderFulfillmentRequirements.id, { onDelete: "set null" }),
+  productId: integer("product_id").references(() => products.id),
+  productName: varchar("product_name", { length: 255 }).notNull(),
+  specification: text("specification"),
+  quantity: decimal("quantity", { precision: 14, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  requiredBy: timestamp("required_by"),
+  reason: text("reason").notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("draft"),
+  requestedById: varchar("requested_by_id").notNull().references(() => users.id),
+  approvedById: varchar("approved_by_id").references(() => users.id),
+  approvalNotes: text("approval_notes"),
+  submittedAt: timestamp("submitted_at"),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("material_requisition_status_idx").on(table.status),
+  index("material_requisition_product_idx").on(table.productId),
+]);
+
+export const vendorOffers = pgTable("vendor_offers", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => qualityVendors.id),
+  vendorScopeId: integer("vendor_scope_id").notNull().references(() => vendorApprovalScopes.id),
+  materialRequisitionId: integer("material_requisition_id").notNull().references(() => materialRequisitions.id),
+  quantity: decimal("quantity", { precision: 14, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 14, scale: 4 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  leadTimeDays: integer("lead_time_days"),
+  paymentTerms: text("payment_terms"),
+  deliveryTerms: text("delivery_terms"),
+  validUntil: timestamp("valid_until"),
+  status: varchar("status", { length: 30 }).notNull().default("received"),
+  notes: text("notes"),
+  recordedById: varchar("recorded_by_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("vendor_offers_requisition_idx").on(table.materialRequisitionId),
+  index("vendor_offers_vendor_idx").on(table.vendorId),
+]);
+
+export const purchaseOrderItems = pgTable("purchase_order_items", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id").notNull().references(() => purchaseOrders.id, { onDelete: "cascade" }),
+  materialRequisitionId: integer("material_requisition_id").references(() => materialRequisitions.id),
+  vendorOfferId: integer("vendor_offer_id").references(() => vendorOffers.id),
+  productId: integer("product_id").references(() => products.id),
+  description: varchar("description", { length: 500 }).notNull(),
+  specification: text("specification"),
+  quantity: decimal("quantity", { precision: 14, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 14, scale: 4 }).notNull(),
+  lineTotal: decimal("line_total", { precision: 14, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("purchase_order_items_order_idx").on(table.purchaseOrderId),
+  index("purchase_order_items_requisition_idx").on(table.materialRequisitionId),
+]);
+
+export const vendorDocuments = pgTable("vendor_documents", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => qualityVendors.id, { onDelete: "cascade" }),
+  approvalScopeId: integer("approval_scope_id").references(() => vendorApprovalScopes.id, { onDelete: "cascade" }),
+  materialRequisitionId: integer("material_requisition_id").references(() => materialRequisitions.id, { onDelete: "cascade" }),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id, { onDelete: "cascade" }),
+  offerId: integer("offer_id").references(() => vendorOffers.id, { onDelete: "cascade" }),
+  documentType: varchar("document_type", { length: 40 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  uploadedById: varchar("uploaded_by_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("vendor_documents_vendor_idx").on(table.vendorId),
+  index("vendor_documents_scope_idx").on(table.approvalScopeId),
+]);
+
+const procurementFileBytes = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+export const vendorDocumentContents = pgTable("vendor_document_contents", {
+  documentId: integer("document_id").primaryKey().references(() => vendorDocuments.id, { onDelete: "cascade" }),
+  fileBytes: procurementFileBytes("file_bytes").notNull(),
+});
+
+export const inventoryReservations = pgTable("inventory_reservations", {
+  id: serial("id").primaryKey(),
+  fulfillmentRequirementId: integer("fulfillment_requirement_id").notNull()
+    .references(() => salesOrderFulfillmentRequirements.id, { onDelete: "cascade" }),
+  qualityBatchId: integer("quality_batch_id").notNull().references(() => qualityBatchNumbers.id),
+  quantity: decimal("quantity", { precision: 14, scale: 3 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("active"),
+  createdById: varchar("created_by_id").notNull().references(() => users.id),
+  releasedById: varchar("released_by_id").references(() => users.id),
+  releasedAt: timestamp("released_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("inventory_reservations_batch_status_idx").on(table.qualityBatchId, table.status),
+  index("inventory_reservations_requirement_idx").on(table.fulfillmentRequirementId),
+]);
+
+export const procurementAuditEvents = pgTable("procurement_audit_events", {
+  id: serial("id").primaryKey(),
+  entityType: varchar("entity_type", { length: 40 }).notNull(),
+  entityId: integer("entity_id").notNull(),
+  action: varchar("action", { length: 80 }).notNull(),
+  actorId: varchar("actor_id").notNull().references(() => users.id),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("procurement_audit_entity_idx").on(table.entityType, table.entityId, table.createdAt),
+  index("procurement_audit_actor_idx").on(table.actorId, table.createdAt),
+]);
 
 export const qualityCustomerVendorApprovals = pgTable("quality_customer_vendor_approvals", {
   id: serial("id").primaryKey(),
