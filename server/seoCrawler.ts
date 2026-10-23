@@ -70,6 +70,9 @@ const MAX_PAGES = 500;
 const MAX_LINKS = 800;
 const MAX_CONCURRENCY = 4;
 const REQUEST_TIMEOUT_MS = 8_000;
+const MAX_SITEMAP_FILES = 50_000;
+const MAX_SITEMAP_BYTES = 50 * 1024 * 1024;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const PRIVATE_PATH = /^\/(?:api|admin|crm|login|register|customer|staff|dashboard)(?:\/|$)/i;
 const STATIC_ASSET = /\.(?:css|js|mjs|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|eot|mp4|webm)$/i;
 
@@ -348,7 +351,7 @@ export async function runSeoCrawlerAudit(options: {
   const concurrency = Math.max(1, Math.min(MAX_CONCURRENCY, options.concurrency || 3));
   const offset = Math.max(0, Math.floor(options.offset || 0));
   const deadlineAt = Date.now() + 90_000;
-  const requestPage = async (url: string) => {
+  const requestPage = async (url: string, maxBytes = MAX_RESPONSE_BYTES) => {
     const remainingMs = deadlineAt - Date.now();
     if (remainingMs <= 0) {
       return { status: 0, contentType: "", body: "", durationMs: 0, error: "The 90-second crawl time limit was reached" };
@@ -363,7 +366,6 @@ export async function runSeoCrawlerAudit(options: {
         redirect: "manual",
       });
       const contentType = response.headers.get("content-type") || "";
-      const maxBytes = 2 * 1024 * 1024;
       const length = Number(response.headers.get("content-length") || 0);
       if (length > maxBytes) {
         await response.body?.cancel();
@@ -395,7 +397,10 @@ export async function runSeoCrawlerAudit(options: {
 
   const robotsUrl = new URL("/robots.txt", origin).toString();
   const sitemapUrl = new URL("/sitemap.xml", origin).toString();
-  const [robotsResponse, sitemapResponse] = await Promise.all([requestPage(robotsUrl), requestPage(sitemapUrl)]);
+  const [robotsResponse, sitemapResponse] = await Promise.all([
+    requestPage(robotsUrl),
+    requestPage(sitemapUrl, MAX_SITEMAP_BYTES),
+  ]);
   const robots = robotsResponse.status >= 200 && robotsResponse.status < 300 ? robotsResponse.body : "";
   const sitemapQueue = new Set<string>([sitemapUrl]);
   if (robots) {
@@ -413,7 +418,7 @@ export async function runSeoCrawlerAudit(options: {
   const sitemapUrlsSet = new Set<string>();
   const seenSitemaps = new Set<string>();
   let sitemapErrors: string[] = [];
-  while (sitemapQueue.size && seenSitemaps.size < 8) {
+  while (sitemapQueue.size && seenSitemaps.size < MAX_SITEMAP_FILES) {
     if (Date.now() >= deadlineAt) {
       sitemapErrors.push("The 90-second crawl time limit was reached while reading sitemap files");
       break;
@@ -422,7 +427,9 @@ export async function runSeoCrawlerAudit(options: {
     sitemapQueue.delete(currentSitemap);
     if (seenSitemaps.has(currentSitemap)) continue;
     seenSitemaps.add(currentSitemap);
-    const response = currentSitemap === sitemapUrl ? sitemapResponse : await requestPage(currentSitemap);
+    const response = currentSitemap === sitemapUrl
+      ? sitemapResponse
+      : await requestPage(currentSitemap, MAX_SITEMAP_BYTES);
     if (response.status < 200 || response.status >= 300 || !response.body) {
       sitemapErrors.push(`${currentSitemap} returned HTTP ${response.status || "no response"}`);
       continue;
@@ -433,6 +440,9 @@ export async function runSeoCrawlerAudit(options: {
       if (!seenSitemaps.has(nested)) sitemapQueue.add(nested);
     });
   }
+  if (Array.from(sitemapQueue).some(url => !seenSitemaps.has(url))) {
+    sitemapErrors.push(`The sitemap index exceeded the ${MAX_SITEMAP_FILES.toLocaleString()}-file audit limit`);
+  }
   const sitemapUrls = Array.from(sitemapUrlsSet);
   const startUrl = new URL("/", origin).toString();
   const sitemapSet = new Set(sitemapUrls);
@@ -440,7 +450,9 @@ export async function runSeoCrawlerAudit(options: {
     const path = new URL(url).pathname;
     return !PRIVATE_PATH.test(path) && !STATIC_ASSET.test(path) && !robotsDisallows(path, robots);
   });
-  const snapshotHash = createHash("sha256").update(`${robots}\n${eligibleSitemapUrls.join("\n")}\n${sitemapErrors.join("\n")}`).digest("hex");
+  const snapshotHash = createHash("sha256")
+    .update(`${origin}\n${options.environment}\n${robots}\n${eligibleSitemapUrls.join("\n")}\n${sitemapErrors.join("\n")}`)
+    .digest("hex");
   if (options.snapshotHash && options.snapshotHash !== snapshotHash) {
     throw new Error("SEO_SITEMAP_CHANGED");
   }
