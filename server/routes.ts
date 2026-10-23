@@ -3914,6 +3914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: quotationItems.id,
         productId: quotationItems.productId,
         productName: products.name,
+        productHsCode: products.hsCode,
         quantity: quotationItems.quantity,
         unit: quotationItems.unit,
         unitPrice: quotationItems.unitPrice,
@@ -3933,12 +3934,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const linkedLeadId = quotation.leadId || inquiry?.crmLeadId;
+      let companyProfile: Record<string, unknown> | null = null;
+      let primaryContact: Record<string, unknown> | null = null;
+      let leadProfile: Record<string, unknown> | null = null;
+      if (linkedLeadId) {
+        const [leadLink] = await db.select({
+          companyId: leads.companyId,
+          contactPersonId: leads.contactPersonId,
+          productName: leads.productName,
+          productDescription: leads.productDescription,
+          requiredQuantity: leads.requiredQuantity,
+          unit: leads.unit,
+        }).from(leads).where(eq(leads.id, linkedLeadId)).limit(1);
+        if (leadLink) {
+          leadProfile = {
+            productName: leadLink.productName,
+            productDescription: leadLink.productDescription,
+            requiredQuantity: leadLink.requiredQuantity,
+            unit: leadLink.unit,
+          };
+          const [company] = await db.select({
+            companyName: companies.companyName,
+            primaryEmail: companies.primaryEmail,
+            primaryPhone: companies.primaryPhone,
+            addressStreet: companies.addressStreet,
+            addressCity: companies.addressCity,
+            addressState: companies.addressState,
+            addressCountry: companies.addressCountry,
+            addressZip: companies.addressZip,
+            factoryAddressStreet: companies.factoryAddressStreet,
+            factoryAddressCity: companies.factoryAddressCity,
+            factoryAddressState: companies.factoryAddressState,
+            factoryAddressCountry: companies.factoryAddressCountry,
+            factoryAddressZip: companies.factoryAddressZip,
+          }).from(companies).where(eq(companies.id, leadLink.companyId)).limit(1);
+          companyProfile = company || null;
+          const [contact] = await db.select({
+            contactName: companyContacts.contactName,
+            email: companyContacts.email,
+            phone: companyContacts.phone,
+          }).from(companyContacts)
+            .where(leadLink.contactPersonId
+              ? eq(companyContacts.id, leadLink.contactPersonId)
+              : and(eq(companyContacts.companyId, leadLink.companyId), eq(companyContacts.isPrimary, true)))
+            .limit(1);
+          primaryContact = contact || null;
+        }
+      }
+
+      let customerProfile: Record<string, unknown> | null = null;
+      if (quotation.customerId) {
+        const [customer] = await db.select({
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          companyName: users.companyName,
+          phoneNumber: users.phoneNumber,
+          address: users.address,
+          streetAddress: users.streetAddress,
+          city: users.city,
+          state: users.state,
+          postalCode: users.postalCode,
+          country: users.country,
+        }).from(users).where(eq(users.id, quotation.customerId)).limit(1);
+        customerProfile = customer || null;
+      }
+
       const termsAcceptances = await db.select()
         .from(quotationTermsAcceptances)
         .where(eq(quotationTermsAcceptances.quotationId, quotationId))
         .orderBy(desc(quotationTermsAcceptances.acceptedAt));
 
-      return res.json({ ...quotation, items, inquiry, termsAcceptances });
+      return res.json({ ...quotation, items, inquiry, lead: leadProfile, companyProfile, primaryContact, customerProfile, termsAcceptances });
     } catch (error) {
       console.error("Error fetching quotation details:", error);
       return res.status(500).json({ message: "Failed to fetch quotation details" });

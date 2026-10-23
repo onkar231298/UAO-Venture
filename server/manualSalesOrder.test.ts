@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { manualSalesOrderSchema, calculateSalesOrderTotals } from "@shared/salesOrderContract";
 import { generateSalesOrderContractPdf } from "./salesOrderContractPdf";
+import { createEmptySalesOrderDraft, prefillManualSalesOrder, type SalesOrderQuotationSource } from "../client/src/lib/quotationToSalesOrderPrefill";
 
 function fixture() {
   return manualSalesOrderSchema.parse({
@@ -62,6 +63,83 @@ test("manual SO totals use entered lines and round each financial amount consist
   assert.throws(() => calculateSalesOrderTotals({
     items: [{ ...data.items[0], quantity: 99999999, unitPrice: 9999999999 }], discountPercent: 0, taxPercent: 0,
   }), /exceeds/);
+});
+
+test("manual SO form pre-fills editable details from the quote, inquiry, account, and company", () => {
+  const source: SalesOrderQuotationSource = {
+    quotationId: "QUO-123",
+    createdAt: "2026-10-20T10:00:00.000Z",
+    currency: "EUR",
+    priceType: "FOB",
+    paymentTerms: "30% advance",
+    leadTime: "Three weeks",
+    terms: "Quoted export terms",
+    notes: "Sales follow-up note",
+    customerCity: "Milan",
+    customerCountry: "Italy",
+    discountPercent: "5.00",
+    includeGst: true,
+    gstPercentage: "18.00",
+    sellerGstin: "SELLER-GST",
+    inquiry: {
+      companyName: "Buyer Company",
+      contactName: "Buyer Contact",
+      emailAddress: "buyer@example.com",
+      phoneNumber: "+390000000",
+      packagingPreference: "25 kg bags",
+      expectedDelivery: "2026-12-01T00:00:00.000Z",
+    },
+    companyProfile: {
+      companyName: "Company Directory Name",
+      primaryEmail: "company@example.com",
+      primaryPhone: "+391111111",
+      addressStreet: "Company street",
+      addressCity: "Turin",
+      addressCountry: "Italy",
+      factoryAddressStreet: "Warehouse road",
+      factoryAddressCity: "Genoa",
+      factoryAddressCountry: "Italy",
+    },
+    primaryContact: { contactName: "Company Contact", email: "contact@example.com", phone: "+392222222" },
+    customerProfile: {
+      firstName: "Account",
+      lastName: "User",
+      email: "account@example.com",
+      companyName: "Account Company",
+    },
+    items: [{
+      productName: "Organic Pepper",
+      productHsCode: "090411",
+      specifications: "Whole, export grade",
+      quantity: "1200.00",
+      unit: "KG",
+      unitPrice: "4.25",
+      totalPrice: "5100.00",
+    }],
+  };
+
+  const draft = prefillManualSalesOrder(source, createEmptySalesOrderDraft());
+  assert.equal(draft.contractNumber, "QUO-123");
+  assert.equal(draft.currency, "EUR");
+  assert.equal(draft.buyer.name, "Buyer Company");
+  assert.equal(draft.buyer.contactName, "Buyer Contact");
+  assert.equal(draft.buyer.email, "buyer@example.com");
+  assert.equal(draft.buyer.address, "Milan, Italy");
+  assert.equal(draft.consignee.address, "Warehouse road, Genoa, Italy");
+  assert.equal(draft.items[0].productName, "Organic Pepper — Whole, export grade");
+  assert.equal(draft.items[0].hsnCode, "090411");
+  assert.equal(draft.items[0].quantity, "1200.00");
+  assert.equal(draft.items[0].unitPrice, "4.25");
+  assert.equal(draft.paymentTerms, "30% advance");
+  assert.equal(draft.leadTime, "Three weeks");
+  assert.equal(draft.priceTerms, "FOB");
+  assert.equal(draft.packingDetails, "25 kg bags");
+  assert.equal(draft.additionalTerms, "Quoted export terms");
+  assert.equal(draft.seller.gstNumber, "SELLER-GST");
+  assert.equal(draft.discountPercent, "5.00");
+  assert.equal(draft.taxPercent, "18.00");
+  assert.equal(draft.expectedDeliveryDate, "2026-12-01");
+  assert.equal(draft.bank.accountNumber, "");
 });
 
 test("sample contract PDF supports both normal and long multi-page documents", async () => {

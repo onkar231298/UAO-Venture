@@ -92,6 +92,7 @@ export default function QuotationToSalesOrderButton({
       </span>
       <ManualSalesOrderForm
         open={open}
+        quotationId={quotationId}
         quotationNumber={quotationNumber}
         pending={convertMutation.isPending}
         onOpenChange={setOpen}

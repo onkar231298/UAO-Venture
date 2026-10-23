@@ -1,104 +1,30 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { calculateSalesOrderTotals, manualSalesOrderSchema, type ManualSalesOrder } from "../../../../shared/salesOrderContract";
+import {
+  createEmptySalesOrderDraft,
+  prefillManualSalesOrder,
+  type ManualSalesOrderDraft,
+  type SalesOrderDraftItem as DraftItem,
+  type SalesOrderQuotationSource,
+} from "@/lib/quotationToSalesOrderPrefill";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-type DraftParty = { name: string; address: string; contactName: string; email: string; phone: string };
-type DraftItem = {
-  productName: string;
-  hsnCode: string;
-  totalBags: string;
-  quantity: string;
-  unit: string;
-  unitPrice: string;
-  batchNumber: string;
-};
-type ManualSalesOrderDraft = {
-  contractNumber: string;
-  contractDate: string;
-  proformaNumber: string;
-  proformaDate: string;
-  seller: { name: string; address: string; phone: string; email: string; website: string; gstNumber: string; iecNumber: string };
-  buyer: DraftParty;
-  consignee: DraftParty;
-  notifyParty: DraftParty;
-  currency: string;
-  items: DraftItem[];
-  packingDetails: string;
-  paymentTerms: string;
-  lcType: string;
-  leadTime: string;
-  priceTerms: string;
-  portOfLoading: string;
-  portOfDischarge: string;
-  finalDestination: string;
-  destinationCountry: string;
-  bank: { name: string; branch: string; accountName: string; accountNumber: string; ifsc: string; swift: string; address: string };
-  authorisedSignatory: string;
-  signatoryDesignation: string;
-  additionalTerms: string;
-  internalNotes: string;
-  expectedDeliveryDate: string;
-  advancePercent: string;
-  creditDays: string;
-  discountPercent: string;
-  taxPercent: string;
-};
-
 interface Props {
   open: boolean;
+  quotationId: number;
   quotationNumber: string;
   pending: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (order: ManualSalesOrder) => void;
 }
 
-const blankParty = (): DraftParty => ({ name: "", address: "", contactName: "", email: "", phone: "" });
-const blankItem = (): DraftItem => ({
-  productName: "",
-  hsnCode: "",
-  totalBags: "",
-  quantity: "",
-  unit: "",
-  unitPrice: "",
-  batchNumber: "",
-});
-const initialDraft = (): ManualSalesOrderDraft => ({
-  contractNumber: "",
-  contractDate: "",
-  proformaNumber: "",
-  proformaDate: "",
-  seller: { name: "Atlas Ingredients", address: "", phone: "", email: "", website: "", gstNumber: "", iecNumber: "" },
-  buyer: blankParty(),
-  consignee: blankParty(),
-  notifyParty: blankParty(),
-  currency: "USD",
-  items: [blankItem()],
-  packingDetails: "",
-  paymentTerms: "",
-  lcType: "",
-  leadTime: "",
-  priceTerms: "",
-  portOfLoading: "",
-  portOfDischarge: "",
-  finalDestination: "",
-  destinationCountry: "",
-  bank: { name: "", branch: "", accountName: "", accountNumber: "", ifsc: "", swift: "", address: "" },
-  authorisedSignatory: "",
-  signatoryDesignation: "",
-  additionalTerms: "",
-  internalNotes: "",
-  expectedDeliveryDate: "",
-  advancePercent: "",
-  creditDays: "",
-  discountPercent: "",
-  taxPercent: "",
-});
-
+const blankParty = (): ManualSalesOrderDraft["buyer"] => ({ name: "", address: "", contactName: "", email: "", phone: "" });
 type FieldErrors = Record<string, string>;
 type GroupName = "buyer" | "consignee" | "notifyParty";
 
@@ -120,18 +46,38 @@ function FieldError({ error, id }: { error?: string; id: string }) {
   return error ? <p id={`${id}-error`} className="text-xs font-medium text-destructive">{error}</p> : null;
 }
 
-export default function ManualSalesOrderForm({ open, quotationNumber, pending, onOpenChange, onSubmit }: Props) {
-  const [draft, setDraft] = useState<ManualSalesOrderDraft>(initialDraft);
+export default function ManualSalesOrderForm({ open, quotationId, quotationNumber, pending, onOpenChange, onSubmit }: Props) {
+  const [draft, setDraft] = useState<ManualSalesOrderDraft>(createEmptySalesOrderDraft);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
+  const prefillingQuoteId = useRef<number | null>(null);
+  const quotationQuery = useQuery<SalesOrderQuotationSource>({
+    queryKey: ["/api/quotations", quotationId, "sales-order-prefill"],
+    enabled: open,
+    queryFn: async () => {
+      const response = await fetch(`/api/quotations/${quotationId}`, { credentials: "include" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Could not load the linked quotation");
+      return result as SalesOrderQuotationSource;
+    },
+  });
 
   useEffect(() => {
     if (open) {
-      setDraft(initialDraft());
+      prefillingQuoteId.current = null;
+      setDraft(createEmptySalesOrderDraft());
       setErrors({});
       setFormError("");
     }
-  }, [open]);
+  }, [open, quotationId]);
+
+  useEffect(() => {
+    if (!open || !quotationQuery.data || prefillingQuoteId.current === quotationId) return;
+    setDraft(prefillManualSalesOrder(quotationQuery.data, createEmptySalesOrderDraft()));
+    setErrors({});
+    setFormError("");
+    prefillingQuoteId.current = quotationId;
+  }, [open, quotationId, quotationQuery.data]);
 
   const updateField = (path: string) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setDraft((current) => setPath(current, path, event.target.value));
@@ -196,7 +142,10 @@ export default function ManualSalesOrderForm({ open, quotationNumber, pending, o
     </section>
   );
 
-  const addProduct = () => setDraft((current) => ({ ...current, items: [...current.items, blankItem()] }));
+  const addProduct = () => setDraft((current) => ({
+    ...current,
+    items: [...current.items, createEmptySalesOrderDraft().items[0]],
+  }));
   const removeProduct = (index: number) => setDraft((current) => ({
     ...current,
     items: current.items.filter((_, itemIndex) => itemIndex !== index),
@@ -267,9 +216,24 @@ export default function ManualSalesOrderForm({ open, quotationNumber, pending, o
         <DialogHeader className="shrink-0 border-b px-5 py-4 pr-12 sm:px-7">
           <DialogTitle className="text-xl">Create Sales Order</DialogTitle>
           <DialogDescription>
-            Enter the export contract manually for accepted quotation <strong>{quotationNumber}</strong>. Nothing is created until you submit.
+            Details from quotation <strong>{quotationNumber}</strong> are prefilled for convenience. Review and edit them before creating the order.
           </DialogDescription>
         </DialogHeader>
+        {quotationQuery.isLoading ? (
+          <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground" role="status">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading quotation details…
+          </div>
+        ) : quotationQuery.isError || !quotationQuery.data ? (
+          <div className="space-y-4 px-5 py-8 text-center sm:px-7">
+            <p role="alert" className="text-sm text-destructive">
+              {quotationQuery.error instanceof Error ? quotationQuery.error.message : "Could not load quotation details. No fields were prefilled."}
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>Cancel</Button>
+              <Button type="button" onClick={() => quotationQuery.refetch()} disabled={pending}>Retry</Button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-6 sm:px-7">
             <section className="space-y-4">
@@ -445,6 +409,7 @@ export default function ManualSalesOrderForm({ open, quotationNumber, pending, o
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

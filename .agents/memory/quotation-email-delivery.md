@@ -19,8 +19,8 @@ An assigned sales representative or an admin can deliberately create a linked dr
 
 **How to apply:** Keep customer acceptance and staff-recorded acceptance as separate evidence from SO creation. Preserve quotation status at creation, enforce enquiry assignment for sales users, and prevent duplicate orders.
 
-Use **Create SO**, not direct **Generate SO**. The owner requires all order details to be entered manually before the order is saved; the quotation is a linked reference, not a source to silently copy buyer information, product lines, pricing, or terms.
+Use **Create SO**, not direct **Generate SO**. Prefill available buyer, product, price, currency, and commercial details from the linked quotation, inquiry, customer account, and company profile. Keep every prefilled value editable; leave unsupported details blank. The quote is a reference and must not be silently modified when the SO is saved.
 
-**Why:** The owner explicitly rejected one-click SO generation and supplied a Sales Contract / Proforma Invoice example for the desired PDF structure.
+**Why:** The owner wants manual review and editing of the Sales Contract / Proforma Invoice, while avoiding duplicate data entry from an existing quotation.
 
-**How to apply:** Open a manual-entry form for contract/proforma references, parties, items, payment and shipping terms, bank information, and signatory details. Calculate totals from entered lines. Use the sample's grid structure with Atlas branding, not its sample company/bank information or signature.
+**How to apply:** Open a form with known details prefilled and editable, plus manual fields for unavailable contract references, shipping details, bank information, and signatory details. Calculate totals from the edited lines. Use the sample's grid structure with Atlas branding, not its sample company/bank information or signature.
