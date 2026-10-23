@@ -13,13 +13,13 @@ Do not send quotation emails yet. Publishing a quote should make it available in
 
 Acceptance in the customer dashboard marks the quotation accepted. A customer-uploaded signed quotation remains pending until an authorized staff member reviews it. Staff can also record a confirmed acceptance received by email, phone, WhatsApp, or another channel, including its date and supporting evidence.
 
-Only accepted quotations can create a linked draft Sales Order. The assigned sales representative or an admin deliberately creates it, at any time after acceptance; creation must never happen automatically or from a sent, unaccepted quotation. Keep the order tied to the enquiry's assigned sales representative. Quotation email delivery remains deferred.
+An assigned sales representative or an admin can deliberately create a linked draft Sales Order from a draft, sent, expired, or accepted quotation; creating one does not claim customer acceptance. Keep an unaccepted quotation's status unchanged, keep the accepted quotation's existing converted status, record the original status in order activity, and prevent duplicate orders. Quotation email delivery remains deferred.
 
-**Why:** The owner requires staff review for uploaded signatures, supports acceptance through multiple channels, and explicitly limits Sales Order creation to accepted quotations while allowing assigned sales staff and admins to do it later.
+**Why:** The owner explicitly said staff should be able to prepare an SO even before formal acceptance, including when the customer confirms by email or another channel.
 
-**How to apply:** Keep dashboard acceptance, staff-recorded acceptance, and Sales Order creation as distinct steps. Audit the acceptance channel and evidence, enforce enquiry assignment for sales users, and prevent duplicate orders.
+**How to apply:** Keep customer acceptance and staff-recorded acceptance as separate evidence from SO creation. Preserve quotation status at creation, enforce enquiry assignment for sales users, and prevent duplicate orders.
 
-Use **Create SO**, not direct **Generate SO**. The owner requires all order details to be entered manually before the order is saved; the accepted quotation is a linked reference, not a source to silently copy buyer information, product lines, pricing, or terms.
+Use **Create SO**, not direct **Generate SO**. The owner requires all order details to be entered manually before the order is saved; the quotation is a linked reference, not a source to silently copy buyer information, product lines, pricing, or terms.
 
 **Why:** The owner explicitly rejected one-click SO generation and supplied a Sales Contract / Proforma Invoice example for the desired PDF structure.
 

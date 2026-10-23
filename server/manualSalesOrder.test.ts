@@ -93,8 +93,6 @@ test("manual order saves entered data, preserves assignment and blocks duplicate
     }).returning({ id: quotations.id });
     quoteId = quote.id;
     const manual = fixture();
-    await assert.rejects(storage.createSalesOrderFromQuotation(quote.id, { createdBy: rep, manualOrder: manual }), /accepted/);
-    await db.update(quotations).set({ status: "accepted" }).where(eq(quotations.id, quote.id));
     const result = await storage.createSalesOrderFromQuotation(quote.id, { createdBy: rep, manualOrder: manual });
     assert.equal(result.assignedToUserId, rep);
     assert.equal(result.totalAmount, "2250.00");
@@ -103,6 +101,10 @@ test("manual order saves entered data, preserves assignment and blocks duplicate
     const [unchangedQuote] = await db.select().from(quotations).where(eq(quotations.id, quote.id));
     assert.equal(unchangedQuote.totalAmount, "999.00");
     assert.equal(unchangedQuote.customerCompanyName, "Do not copy this quotation buyer");
+    assert.equal(unchangedQuote.status, "draft");
+    assert.equal(unchangedQuote.salesOrderId, result.id);
+    const [creationActivity] = await db.select().from(salesOrderActivities).where(eq(salesOrderActivities.salesOrderId, result.id));
+    assert.equal((creationActivity.metadata as Record<string, unknown>).quotationStatusAtOrderCreation, "draft");
     const items = await storage.getSalesOrderItems(result.id);
     assert.equal(items.length, 2);
     assert.equal(items[0].productName, manual.items[0].productName);

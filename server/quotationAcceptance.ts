@@ -55,6 +55,6 @@ export function isAcceptanceWithinQuotationValidity(
   return !expiryDate || (!!acceptedDate && acceptedDate <= expiryDate);
 }
 
-export function canConvertQuotationToSalesOrder(status: string | null | undefined): boolean {
-  return status === "accepted";
+export function canCreateSalesOrderFromQuotation(status: string | null | undefined): boolean {
+  return status === "draft" || status === "sent" || status === "accepted" || status === "expired";
 }

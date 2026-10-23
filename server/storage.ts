@@ -217,7 +217,7 @@ import { stringify } from "csv-stringify/sync";
 import { Readable } from "stream";
 import bcrypt from "bcryptjs";
 import { encryptEmailCredential } from "./email/credentials";
-import { canConvertQuotationToSalesOrder, isQuotationExpired } from "./quotationAcceptance";
+import { canCreateSalesOrderFromQuotation, isQuotationExpired } from "./quotationAcceptance";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -3884,15 +3884,17 @@ export class DatabaseStorage implements IStorage {
     const manual = manualSalesOrderSchema.parse(options.manualOrder);
     const totals = calculateSalesOrderTotals(manual);
     return await db.transaction(async (tx) => {
-      const [currentQuotation] = await tx.select().from(quotations).where(eq(quotations.id, quotationId));
+      const [currentQuotation] = await tx.select().from(quotations)
+        .where(eq(quotations.id, quotationId))
+        .for("update");
       if (!currentQuotation) {
         throw new Error('Quotation not found');
       }
       if (currentQuotation.salesOrderId || currentQuotation.status === 'converted') {
         throw new Error('Quotation already converted to a sales order');
       }
-      if (!canConvertQuotationToSalesOrder(currentQuotation.status)) {
-        throw new Error('Only accepted quotations can be converted to sales orders');
+      if (!canCreateSalesOrderFromQuotation(currentQuotation.status)) {
+        throw new Error('Sales Orders cannot be created from rejected or converted quotations');
       }
 
       const [existingOrder] = await tx.select({ id: salesOrders.id })
@@ -3903,19 +3905,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Quotation already has a sales order');
       }
 
-      // Claim the accepted quotation with a conditional update so concurrent requests cannot
-      // create two orders from the same quotation.
-      const [quotation] = await tx.update(quotations)
-        .set({ status: 'converted', updatedAt: new Date() })
-        .where(and(
-          eq(quotations.id, quotationId),
-          eq(quotations.status, 'accepted'),
-          isNull(quotations.salesOrderId),
-        ))
-        .returning();
-      if (!quotation) {
-        throw new Error('Quotation was already converted by another user');
-      }
+      const quotation = currentQuotation;
 
       let assignedSalesRepId = quotation.createdBy;
       if (quotation.inquiryId) {
@@ -4002,7 +3992,12 @@ export class DatabaseStorage implements IStorage {
         title: 'Sales Order Created Manually',
         description: `Sales order ${newOrder.soNumber} was manually prepared against quotation ${quotation.quotationId}`,
         performedBy: options.createdBy,
-        metadata: { quotationId, quotationNumber: quotation.quotationId, entryMode: "manual" },
+        metadata: {
+          quotationId,
+          quotationNumber: quotation.quotationId,
+          entryMode: "manual",
+          quotationStatusAtOrderCreation: currentQuotation.status,
+        },
         createdAt: new Date(),
       });
 
@@ -4016,11 +4011,21 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
       });
 
-      // Attach the created order to the quotation before committing the transaction.
-      await tx.update(quotations).set({
+      // Preserve an unaccepted quotation's status. Accepted quotes retain the
+      // existing converted status; the row lock keeps acceptance and duplicate
+      // checks consistent while this manual Sales Order is created.
+      const [linkedQuotation] = await tx.update(quotations).set({
+        status: currentQuotation.status === "accepted" ? "converted" : currentQuotation.status,
         salesOrderId: newOrder.id,
         updatedAt: new Date(),
-      }).where(eq(quotations.id, quotationId));
+      }).where(and(
+        eq(quotations.id, quotationId),
+        inArray(quotations.status, ["draft", "sent", "accepted", "expired"]),
+        isNull(quotations.salesOrderId),
+      )).returning({ id: quotations.id });
+      if (!linkedQuotation) {
+        throw new Error("Quotation already converted; no duplicate Sales Order was created");
+      }
 
       return newOrder;
     });

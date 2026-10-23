@@ -2704,10 +2704,12 @@ Packaging: Standard export packaging`,
                                   Resend Quote
                                 </Button>
                               ) : null}
-                              {quote.status === 'accepted' && !quote.salesOrderId && (
+                              {!quote.salesOrderId && quote.status !== 'converted' && (
                                 <QuotationToSalesOrderButton
                                   quotationId={quote.id}
                                   quotationNumber={quote.quotationId || quote.quotationNumber}
+                                  disabled={!['draft', 'sent', 'accepted', 'expired'].includes(quote.status)}
+                                  disabledReason="Sales Orders cannot be created from rejected or already-converted quotations."
                                   onConverted={() => {
                                     queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'quotations'] });
                                     queryClient.invalidateQueries({ queryKey: ['/api/crm/leads', lead?.id, 'activities'] });

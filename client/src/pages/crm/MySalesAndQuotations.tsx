@@ -552,10 +552,8 @@ export default function MySalesAndQuotations() {
                                   <QuotationToSalesOrderButton
                                     quotationId={quotation.id}
                                     quotationNumber={quotation.quotationId}
-                                    disabled={quotation.status !== "accepted"}
-                                    disabledReason={quotation.status === "sent"
-                                      ? "Record customer acceptance in quotation details before generating a Sales Order."
-                                      : "Only accepted quotations can be converted to a Sales Order."}
+                                    disabled={!["draft", "sent", "accepted", "expired"].includes(quotation.status)}
+                                    disabledReason="Sales Orders cannot be created from rejected or already-converted quotations."
                                     onConverted={() => setSelectedTab("sales-orders")}
                                   />
                                 )}
@@ -1134,10 +1132,8 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
                   <QuotationToSalesOrderButton
                     quotationId={quotation.id}
                     quotationNumber={quotation.quotationId}
-                    disabled={quotation.status !== "accepted"}
-                    disabledReason={quotation.status === "sent"
-                      ? "Record customer acceptance in quotation details before generating a Sales Order."
-                      : "Only accepted quotations can be converted to a Sales Order."}
+                    disabled={!["draft", "sent", "accepted", "expired"].includes(quotation.status)}
+                    disabledReason="Sales Orders cannot be created from rejected or already-converted quotations."
                     onConverted={onClose}
                   />
                 </div>

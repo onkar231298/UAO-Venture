@@ -167,7 +167,7 @@ import { registerQuotationDocumentRoutes } from "./quotationDocumentRoutes";
 import { registerCustomerEmailTemplateRoutes } from "./customerEmailTemplateRoutes";
 import { sendCustomerTransactionalEmail } from "./customerTransactionalEmail";
 import {
-  canConvertQuotationToSalesOrder,
+  canCreateSalesOrderFromQuotation,
   isAcceptanceWithinQuotationValidity,
   isQuotationExpired,
   parseAcceptanceDate,
@@ -5815,8 +5815,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!canConvertQuotationToSalesOrder(quotation.status)) {
-        return res.status(400).json({ message: "Only accepted quotations can be converted to sales orders" });
+      if (!canCreateSalesOrderFromQuotation(quotation.status)) {
+        return res.status(400).json({ message: "Sales Orders cannot be created from rejected or converted quotations" });
       }
 
       const manualOrder = manualSalesOrderSchema.safeParse(req.body.manualOrder);

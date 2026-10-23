@@ -1,18 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  canConvertQuotationToSalesOrder,
+  canCreateSalesOrderFromQuotation,
   isAcceptanceWithinQuotationValidity,
   isQuotationExpired,
   parseAcceptanceDate,
   staffQuotationAcceptanceSchema,
 } from "./quotationAcceptance";
 
-test("only accepted quotations can be converted to sales orders", () => {
-  for (const status of ["draft", "sent", "rejected", "expired", "converted", null, undefined]) {
-    assert.equal(canConvertQuotationToSalesOrder(status), false, `${status} must not convert`);
+test("draft, sent, expired, and accepted quotations may create Sales Orders", () => {
+  for (const status of ["draft", "sent", "expired", "accepted"]) {
+    assert.equal(canCreateSalesOrderFromQuotation(status), true, `${status} may create a Sales Order`);
   }
-  assert.equal(canConvertQuotationToSalesOrder("accepted"), true);
+  for (const status of ["rejected", "converted", null, undefined]) {
+    assert.equal(canCreateSalesOrderFromQuotation(status), false, `${status} must not create a Sales Order`);
+  }
 });
 
 test("quotation validity includes its final calendar date", () => {
