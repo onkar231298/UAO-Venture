@@ -517,10 +517,29 @@ export default function MySalesAndQuotations() {
                                       ? "Download Draft PDF"
                                       : "Download PDF"}
                                 </Button>
-                                {quotation.status === "accepted" && !quotation.salesOrderId && (
+                                {["sent", "expired"].includes(quotation.status) && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedQuotation(quotation);
+                                      setShowQuotationDetail(true);
+                                    }}
+                                    title="Record customer acceptance from another channel or review an uploaded signed copy"
+                                    data-testid={`button-record-quotation-acceptance-${quotation.id}`}
+                                  >
+                                    <FileCheck className="mr-1 h-4 w-4" />
+                                    Record acceptance
+                                  </Button>
+                                )}
+                                {!quotation.salesOrderId && quotation.status !== "converted" && (
                                   <QuotationToSalesOrderButton
                                     quotationId={quotation.id}
                                     quotationNumber={quotation.quotationId}
+                                    disabled={quotation.status !== "accepted"}
+                                    disabledReason={quotation.status === "sent"
+                                      ? "Record customer acceptance in quotation details before generating a Sales Order."
+                                      : "Only accepted quotations can be converted to a Sales Order."}
                                     onConverted={() => setSelectedTab("sales-orders")}
                                   />
                                 )}
@@ -1073,11 +1092,15 @@ function QuotationDetailDialog({ quotation, open, onClose }: { quotation: Quotat
                 quotationStatus={quotation.status}
                 mode="staff"
               />
-              {quotation.status === "accepted" && !quotation.salesOrderId && (
+              {!quotation.salesOrderId && quotation.status !== "converted" && (
                 <div className="flex justify-end">
                   <QuotationToSalesOrderButton
                     quotationId={quotation.id}
                     quotationNumber={quotation.quotationId}
+                    disabled={quotation.status !== "accepted"}
+                    disabledReason={quotation.status === "sent"
+                      ? "Record customer acceptance in quotation details before generating a Sales Order."
+                      : "Only accepted quotations can be converted to a Sales Order."}
                     onConverted={onClose}
                   />
                 </div>

@@ -9,6 +9,8 @@ interface QuotationToSalesOrderButtonProps {
   quotationId: number;
   quotationNumber: string;
   className?: string;
+  disabled?: boolean;
+  disabledReason?: string;
   onConverted?: () => void;
 }
 
@@ -16,6 +18,8 @@ export default function QuotationToSalesOrderButton({
   quotationId,
   quotationNumber,
   className,
+  disabled = false,
+  disabledReason,
   onConverted,
 }: QuotationToSalesOrderButtonProps) {
   const [open, setOpen] = useState(false);
@@ -58,19 +62,24 @@ export default function QuotationToSalesOrderButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className={className}
-        onClick={() => setOpen(true)}
-        disabled={convertMutation.isPending}
-        title="Create a Sales Order only after customer acceptance has been recorded."
-        data-testid={`button-convert-quotation-to-sales-order-${quotationId}`}
+      <span
+        className="inline-flex"
+        title={disabled ? (disabledReason || "Record customer acceptance before creating a Sales Order.") : undefined}
       >
-        <ShoppingCart className="mr-1 h-4 w-4" />
-        Convert to Sales Order
-      </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={className}
+          onClick={() => setOpen(true)}
+          disabled={disabled || convertMutation.isPending}
+          title={disabled ? undefined : "Create a Sales Order only after customer acceptance has been recorded."}
+          data-testid={`button-convert-quotation-to-sales-order-${quotationId}`}
+        >
+          <ShoppingCart className="mr-1 h-4 w-4" />
+          Generate SO
+        </Button>
+      </span>
       <AlertDialog
         open={open}
         onOpenChange={(nextOpen) => {
