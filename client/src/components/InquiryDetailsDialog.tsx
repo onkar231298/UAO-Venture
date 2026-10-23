@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, Mail, Phone, Building, MapPin, Package, Clock, User, MessageSquare, UserPlus, CheckCircle2, FileText, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import { type Inquiry } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
+import QuotationDocumentsPanel from "@/components/crm/QuotationDocumentsPanel";
+import QuotationToSalesOrderButton from "@/components/crm/QuotationToSalesOrderButton";
 
 interface InquiryDetailsDialogProps {
   inquiry: Inquiry & { productName?: string };
@@ -398,6 +400,26 @@ export default function InquiryDetailsDialog({ inquiry, open, onOpenChange, onCo
               </CardContent>
             </Card>
           ) : null}
+
+          {latestQuotation && (
+            <>
+              <QuotationDocumentsPanel
+                quotationId={latestQuotation.id}
+                inquiryId={inquiry.id}
+                quotationStatus={latestQuotation.status}
+                mode="staff"
+              />
+              {latestQuotation.status === "accepted" && !latestQuotation.salesOrderId && (
+                <div className="flex justify-end">
+                  <QuotationToSalesOrderButton
+                    quotationId={latestQuotation.id}
+                    quotationNumber={latestQuotation.quotationId}
+                    onConverted={() => onOpenChange(false)}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {onConvertToLead && !inquiry.crmLeadId && (

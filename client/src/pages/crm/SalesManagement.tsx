@@ -24,7 +24,13 @@ import CompanyManagement from "./CompanyManagement";
 import DuplicateReview from "./DuplicateReview";
 import { QuotationEditDialog } from "./MySalesAndQuotations";
 
-export default function SalesManagement({ activeSubSection }: { activeSubSection?: string } = {}) {
+export default function SalesManagement({
+  activeSubSection,
+  embeddedForSalesDashboard = false,
+}: {
+  activeSubSection?: string;
+  embeddedForSalesDashboard?: boolean;
+} = {}) {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -434,14 +440,17 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
 
   return (
     <RoleBasedRoute allowedRoles={['admin', 'super_admin', 'sales_manager', 'sales_executive']}>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Management</h1>
-            <p className="text-gray-600">Manage customer inquiries, quotations, and sales pipeline</p>
-          </div>
+      <div className={embeddedForSalesDashboard ? "w-full" : "min-h-screen bg-gray-50"}>
+        <div className={embeddedForSalesDashboard ? "w-full" : "container mx-auto px-4 py-8"}>
+          {!embeddedForSalesDashboard && (
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Management</h1>
+              <p className="text-gray-600">Manage customer inquiries, quotations, and sales pipeline</p>
+            </div>
+          )}
 
           {/* Dashboard Cards */}
+          {!embeddedForSalesDashboard && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -487,15 +496,16 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
               </CardContent>
             </Card>
           </div>
+          )}
 
 
 
           {/* Product Enquiry Section */}
-          <div className="w-full mt-6">
+          <div className={`w-full ${embeddedForSalesDashboard ? "" : "mt-6"}`}>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <span>Product Enquiry</span>
+                    <span>{embeddedForSalesDashboard ? "My Assigned Inquiries" : "Product Enquiry"}</span>
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
@@ -508,13 +518,19 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                         <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                         Refresh
                       </Button>
-                      <Button size="sm" className="min-h-[44px]">
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Enquiry
-                      </Button>
+                      {!embeddedForSalesDashboard && (
+                        <Button size="sm" className="min-h-[44px]">
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Enquiry
+                        </Button>
+                      )}
                     </div>
                   </CardTitle>
-                  <CardDescription>Regular product enquiries and quote requests</CardDescription>
+                  <CardDescription>
+                    {embeddedForSalesDashboard
+                      ? "Manage enquiries assigned to you, including quotations and accepted orders."
+                      : "Regular product enquiries and quote requests"}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* Product Enquiry Filters */}
@@ -574,7 +590,7 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
                       <div className="text-sm text-gray-600">
-                        Showing {filteredProductEnquiries.length} product enquiries
+                        Showing {filteredProductEnquiries.length} {embeddedForSalesDashboard ? "assigned enquiries" : "product enquiries"}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {statusFilter !== "all" && (
@@ -856,8 +872,14 @@ export default function SalesManagement({ activeSubSection }: { activeSubSection
                 ) : (
                   <div className="text-center py-8">
                     <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
-                    <p className="text-gray-600">New customer inquiries will appear here</p>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {embeddedForSalesDashboard ? "No inquiries assigned to you" : "No inquiries found"}
+                    </h3>
+                    <p className="text-gray-600">
+                      {embeddedForSalesDashboard
+                        ? "New enquiries will appear here when an admin assigns them to you."
+                        : "New customer inquiries will appear here"}
+                    </p>
                   </div>
                 )}
                 </CardContent>

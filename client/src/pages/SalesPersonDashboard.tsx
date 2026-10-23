@@ -60,6 +60,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import LeadDetailDialog from "@/components/LeadDetailDialog";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TodayFollowUpsWidget } from "@/components/crm/TodayFollowUpsWidget";
+import SalesManagement from "@/pages/crm/SalesManagement";
 
 interface DashboardData {
   summary: {
@@ -136,11 +137,6 @@ export default function SalesPersonDashboard() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<{ leads: any[]; total: number }>({
     queryKey: ['/api/sales/my-leads'],
-    enabled: isAuthenticated && !!user,
-  });
-
-  const { data: inquiriesData, isLoading: inquiriesLoading } = useQuery<{ inquiries: any[]; total: number }>({
-    queryKey: ['/api/sales/my-inquiries'],
     enabled: isAuthenticated && !!user,
   });
 
@@ -304,7 +300,6 @@ export default function SalesPersonDashboard() {
   };
 
   const leads = leadsData?.leads || [];
-  const inquiries = inquiriesData?.inquiries || [];
   const samples = samplesData?.requests || [];
   const bids = bidsData?.bids || [];
 
@@ -339,7 +334,12 @@ export default function SalesPersonDashboard() {
   };
 
   return (
-    <SalesLayout title="Overview" subtitle="Here's what's happening with your sales pipeline today.">
+    <SalesLayout
+      title={activeTab === "inquiries" ? "My Assigned Inquiries" : "Overview"}
+      subtitle={activeTab === "inquiries"
+        ? "Manage your assigned customer enquiries and quotations."
+        : "Here's what's happening with your sales pipeline today."}
+    >
       {/* Tab Navigation for different sections */}
       <div className="mb-6 flex flex-wrap gap-2">
         <Button
@@ -634,54 +634,7 @@ export default function SalesPersonDashboard() {
 
           {/* Inquiries Tab */}
           {activeTab === 'inquiries' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>My Assigned Inquiries</CardTitle>
-                <CardDescription>Product inquiries assigned to you</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {inquiriesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-                ) : inquiries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No inquiries assigned to you</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {inquiries.map((inquiry: any) => (
-                      <div
-                        key={inquiry.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                        data-testid={`inquiry-row-${inquiry.id}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <MessageSquare className="w-6 h-6 text-yellow-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">{inquiry.customerName || 'Unknown Customer'}</p>
-                            <p className="text-sm text-gray-500">{inquiry.productName || 'Product inquiry'}</p>
-                            <p className="text-xs text-gray-400">
-                              {inquiry.createdAt && formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {getStatusBadge(inquiry.status || 'pending')}
-                          <Button variant="outline" size="sm" onClick={() => window.location.href = `/admin/inquiries/${inquiry.id}`}>
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <SalesManagement embeddedForSalesDashboard />
           )}
 
           {/* Samples Tab */}

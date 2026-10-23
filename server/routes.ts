@@ -172,6 +172,7 @@ import {
   parseAcceptanceDate,
   staffQuotationAcceptanceSchema,
 } from "./quotationAcceptance";
+import { canManageInquiry } from "./inquiryAccess";
 
 async function canManageQuotation(
   userId: string,
@@ -3092,6 +3093,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!inquiryDetails) {
         return res.status(404).json({ message: "Inquiry not found" });
       }
+      if (!canManageInquiry(userId, user.role, inquiryDetails)) {
+        return res.status(403).json({ message: "You can only convert enquiries assigned to you" });
+      }
 
       // Exclude high volume bids (they have their own conversion endpoint)
       if (inquiryDetails.inquiryType === 'high_volume_bid') {
@@ -4732,10 +4736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inquiryId = parseInt(req.params.id);
       const inquiry = await storage.getInquiry(inquiryId);
       if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
-      if (
-        !user ||
-        ((user.role !== "admin" && user.role !== "super_admin") && inquiry.assignedTo !== userId)
-      ) {
+      if (!user || !canManageInquiry(userId, user.role, inquiry)) {
         return res.status(403).json({ message: "You can only view quotations for enquiries assigned to you" });
       }
       

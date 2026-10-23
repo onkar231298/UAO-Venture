@@ -23,6 +23,7 @@ interface QuotationDocument {
 
 interface QuotationDocumentsPanelProps {
   quotationId: number;
+  inquiryId?: number;
   quotationStatus: string;
   mode: UploadMode;
 }
@@ -40,6 +41,7 @@ function localDateInputValue() {
 
 export default function QuotationDocumentsPanel({
   quotationId,
+  inquiryId,
   quotationStatus,
   mode,
 }: QuotationDocumentsPanelProps) {
@@ -121,6 +123,9 @@ export default function QuotationDocumentsPanel({
       queryClient.invalidateQueries({ queryKey: ["/api/quotations", quotationId] });
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      if (inquiryId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/inquiries/${inquiryId}/quotations`] });
+      }
       setAcceptanceDialogOpen(false);
       setSignedDocumentId(null);
       setAcceptanceNotes("");
