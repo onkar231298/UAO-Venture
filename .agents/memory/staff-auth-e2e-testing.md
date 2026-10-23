@@ -49,3 +49,15 @@ causing a foreign-key cleanup failure that masks the actual browser-test error.
 
 **How to apply:** limit cleanup to the test-owned user, wait for browser exit,
 lock that user before deleting children, and log the verification error before cleanup.
+
+Authenticated fixture tests must isolate staff security-monitoring side effects,
+not just delete records owned by the temporary user.
+
+**Why:** fetching the authenticated profile can schedule off-hours login alerts
+and notifications to real administrators; deleting the fixture user does not
+remove those administrators' notifications.
+
+**How to apply:** after real form login, mark only the newly authenticated,
+fixture-owned session's `loginLogged` flag before requesting the profile. Match
+both its captured session ID and Passport principal; never seed or bypass
+authentication. Tests of security monitoring itself need separate isolation.

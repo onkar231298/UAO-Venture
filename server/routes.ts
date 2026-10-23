@@ -9154,7 +9154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(company);
     } catch (error: any) {
       console.error('Error updating company:', error);
-      if (error.code === '23505' && error.constraint === 'companies_gst_number_key') {
+      if (error.code === '23505' && ['companies_gst_number_key', 'companies_gst_number_unique'].includes(error.constraint)) {
         return res.status(400).json({ message: "A company with this GST number already exists. Please use a different GST number or leave it blank." });
       }
       res.status(500).json({ message: "Failed to update company" });
